@@ -5,6 +5,7 @@
   "description": "BrandMate — LinkedIn personal brand coach with self-learning Redis memory",
   "scripts": {
     "env:push-vercel": "bash scripts/push-vercel-env.sh .env.vercel production",
-    "env:push-vercel:preview": "bash scripts/push-vercel-env.sh .env.vercel preview"
+    "env:push-vercel:preview": "bash scripts/push-vercel-env.sh .env.vercel preview",
+    "git:commit": "bash scripts/git-commit.sh"
   }
 }

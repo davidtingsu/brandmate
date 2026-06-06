@@ -71,6 +71,16 @@ See [docs/CI_SETUP.md](docs/CI_SETUP.md) for required GitHub Secrets (`VERCEL_TO
 vercel env pull .env.vercel.pulled --environment=production
 ```
 
+## Commit identity
+
+All commits must use **David Su &lt;dtscraft@gmail.com&gt;**. Do not rely on `git config user.email`.
+
+```bash
+npm run git:commit -- -m "your message"
+```
+
+See [docs/COMMITS.md](docs/COMMITS.md) for multi-line messages and verification.
+
 ## Security
 
 - Never commit `.env.local` or `.env.vercel`
