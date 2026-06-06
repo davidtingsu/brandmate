@@ -86,6 +86,6 @@ Coach calls `copyPost` → green confirmation toast in chat.
 
 | Issue | Fix |
 |-------|-----|
-| Redis connection error | `docker compose up -d` and check `REDIS_URL=redis://localhost:6379` |
+| Redis connection error | `docker compose up -d` and check `REDIS_URL=redis://localhost:6380` (not plain redis on 6379) |
 | Weave traces missing | Set `WANDB_API_KEY` and `WEAVE_PROJECT` in `.env.local` |
 | OpenAI errors | Check API key; set $15/mo limit at platform.openai.com |

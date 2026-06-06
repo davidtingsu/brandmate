@@ -2,7 +2,8 @@ services:
   redis:
     image: redis/redis-stack:latest
     ports:
-      - "6379:6379"
+      # Use 6380 to avoid conflict with a local brew/homebrew redis on 6379
+      - "6380:6379"
       - "8001:8001"
     volumes:
       - redis_data:/data

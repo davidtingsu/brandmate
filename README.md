@@ -83,7 +83,7 @@ Models and token caps are locked in [`lib/config.ts`](lib/config.ts):
 
 | File | Purpose | Committed? | `REDIS_URL` |
 |------|---------|------------|-------------|
-| `.env.local` | Local `npm run dev` | No | `redis://localhost:6379` |
+| `.env.local` | Local `npm run dev` | No | `redis://localhost:6380` |
 | `.env.vercel` | Push secrets to Vercel | No | `rediss://...` (Redis Cloud) |
 | `.env.local.example` | Local template | Yes | localhost placeholder |
 | `.env.vercel.example` | Vercel template | Yes | Redis Cloud placeholder |

@@ -4,7 +4,7 @@
   "private": true,
   "description": "BrandMate — LinkedIn personal brand coach with self-learning Redis memory",
   "scripts": {
-    "dev": "next dev",
+    "dev": "NODE_OPTIONS='--use-system-ca' next dev",
     "build": "next build",
     "start": "next start",
     "lint": "next lint",

@@ -16,7 +16,8 @@ export async function ensureLessonIndex(): Promise<void> {
     // Index does not exist yet
   }
 
-  await redis.sendCommand([
+  try {
+    await redis.sendCommand([
     "FT.CREATE",
     INDEX_NAME,
     "ON",
@@ -53,7 +54,17 @@ export async function ensureLessonIndex(): Promise<void> {
     String(EMBEDDING_DIMENSIONS),
     "DISTANCE_METRIC",
     "COSINE",
-  ]);
+    ]);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    if (message.includes("unknown command 'FT.CREATE'")) {
+      throw new Error(
+        "Redis search module not available. You may be hitting plain redis on :6379 instead of Redis Stack. " +
+          "Run: docker compose up -d and set REDIS_URL=redis://localhost:6380 in .env.local"
+      );
+    }
+    throw error;
+  }
 }
 
 export interface SearchMemoriesOptions {

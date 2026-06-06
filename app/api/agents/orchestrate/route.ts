@@ -1,4 +1,5 @@
 import { runPostLoop } from "@/lib/agents/orchestrator";
+import { formatError } from "@/lib/weave/errors";
 import { initWeave } from "@/lib/weave/init";
 import type { BrandProfile, PostType } from "@/lib/types";
 import { NextRequest, NextResponse } from "next/server";
@@ -40,7 +41,7 @@ export async function POST(req: NextRequest) {
   } catch (error) {
     console.error("[orchestrate]", error);
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Orchestration failed" },
+      { error: formatError(error) },
       { status: 500 }
     );
   }
