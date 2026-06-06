@@ -4,8 +4,35 @@
   "private": true,
   "description": "BrandMate — LinkedIn personal brand coach with self-learning Redis memory",
   "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
     "env:push-vercel": "bash scripts/push-vercel-env.sh .env.vercel production",
     "env:push-vercel:preview": "bash scripts/push-vercel-env.sh .env.vercel preview",
     "git:commit": "bash scripts/git-commit.sh"
+  },
+  "dependencies": {
+    "@copilotkit/react-core": "^1.8.0",
+    "@copilotkit/react-ui": "^1.8.0",
+    "@copilotkit/runtime": "^1.8.0",
+    "next": "^15.1.0",
+    "openai": "^4.77.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "redis": "^4.7.0",
+    "weave": "^0.15.1",
+    "zod": "^3.24.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "autoprefixer": "^10.4.20",
+    "eslint": "^9.17.0",
+    "eslint-config-next": "^15.1.0",
+    "postcss": "^8.4.49",
+    "tailwindcss": "^3.4.17",
+    "typescript": "^5.7.0"
   }
 }

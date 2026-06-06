@@ -2,7 +2,7 @@ name: Deploy BrandMate to Vercel
 
 on:
   push:
-    branches: [main]
+    branches: [main, master]
   workflow_dispatch:
 
 concurrency:
@@ -12,8 +12,7 @@ concurrency:
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    # Skip until the Next.js app is scaffolded
-    if: hashFiles('package.json') != ''
+    if: hashFiles('app/page.tsx') != ''
 
     env:
       VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}

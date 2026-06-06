@@ -1,0 +1,337 @@
+"use client";
+
+import { AttemptCard } from "@/components/generative/AttemptCard";
+import { BrandProfileCard } from "@/components/generative/BrandProfileCard";
+import { HumanFeedbackButtons } from "@/components/generative/HumanFeedbackButtons";
+import { JudgeBreakdown } from "@/components/generative/JudgeBreakdown";
+import { LessonCard } from "@/components/generative/LessonCard";
+import { MemoryListCard } from "@/components/generative/MemoryListCard";
+import { PostCard } from "@/components/generative/PostCard";
+import type {
+  BrandProfile,
+  HumanFeedbackType,
+  PostAttempt,
+  PostType,
+} from "@/lib/types";
+import { useCopilotAction, useCopilotReadable } from "@copilotkit/react-core";
+import { useCallback, useRef, useState } from "react";
+
+const DEFAULT_PROFILE: BrandProfile = {
+  name: "",
+  niche: "",
+  audience: "",
+  voice: "",
+};
+
+export function usePostActions() {
+  const [brandProfile, setBrandProfile] = useState<BrandProfile>(DEFAULT_PROFILE);
+  const lastAttemptRef = useRef<PostAttempt | null>(null);
+  const pendingLessonRef = useRef<{
+    lesson: string;
+    scoreBefore: number;
+    topic: string;
+    humanFeedback: HumanFeedbackType;
+  } | null>(null);
+  const attemptCounterRef = useRef(1);
+
+  useCopilotReadable({
+    description: "User's LinkedIn personal brand profile",
+    value: brandProfile,
+  });
+
+  const ensureProfile = useCallback(() => {
+    if (!brandProfile.name || !brandProfile.niche) {
+      throw new Error(
+        "Set your brand profile first. Tell me your name, niche, audience, and voice."
+      );
+    }
+    return brandProfile;
+  }, [brandProfile]);
+
+  useCopilotAction({
+    name: "setBrandProfile",
+    description:
+      "Set or update the user's LinkedIn personal brand profile (name, niche, audience, voice, goals)",
+    parameters: [
+      { name: "name", type: "string", description: "User's name", required: true },
+      { name: "niche", type: "string", description: "Professional niche", required: true },
+      { name: "audience", type: "string", description: "Target audience", required: true },
+      { name: "voice", type: "string", description: "Writing voice style", required: true },
+      { name: "goals", type: "string", description: "Brand goals", required: false },
+    ],
+    handler: async ({ name, niche, audience, voice, goals }) => {
+      const profile: BrandProfile = { name, niche, audience, voice, goals };
+      setBrandProfile(profile);
+      return { success: true, profile };
+    },
+    render: ({ result }) => {
+      if (!result?.profile) return <></>;
+      return <BrandProfileCard profile={result.profile as BrandProfile} />;
+    },
+  });
+
+  useCopilotAction({
+    name: "createPost",
+    description:
+      "Generate a LinkedIn post for personal brand growth. Searches Redis memory, generates variants, judges quality.",
+    parameters: [
+      { name: "topic", type: "string", description: "Post topic", required: true },
+      {
+        name: "postType",
+        type: "string",
+        description: "story | insight | lesson | milestone | hot_take",
+        required: false,
+      },
+    ],
+    handler: async ({ topic, postType }) => {
+      const profile = ensureProfile();
+      const res = await fetch("/api/agents/orchestrate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          topic,
+          brandProfile: profile,
+          attemptNumber: attemptCounterRef.current,
+          postType: (postType as PostType) ?? "story",
+        }),
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error ?? "Failed to create post");
+      }
+      const data = await res.json();
+      lastAttemptRef.current = data.attempt;
+      return data;
+    },
+    render: ({ status, result }) => {
+      if (status === "inProgress") {
+        return (
+          <div className="my-2 text-sm text-slate-500">
+            Generating post, searching memories, judging draft...
+          </div>
+        );
+      }
+      if (status !== "complete" || !result?.attempt) return <></>;
+      const attempt = result.attempt as PostAttempt;
+      return (
+        <>
+          <MemoryListCard lessons={attempt.retrievedMemories} topic={attempt.topic} />
+          <PostCard variants={attempt.variants} />
+          <JudgeBreakdown breakdown={attempt.breakdown} score={attempt.judgeScore} />
+          <AttemptCard
+            attempt={attempt}
+            weaveProject={result.weaveTraceId as string | undefined}
+          />
+          <HumanFeedbackButtons
+            onSelect={async (feedback) => {
+              await fetch("/api/agents/memory", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  action: "feedback",
+                  feedbackType: feedback,
+                  scoreBefore: attempt.judgeScore,
+                  traceId: attempt.weaveTraceId,
+                }),
+              });
+            }}
+          />
+        </>
+      );
+    },
+  });
+
+  useCopilotAction({
+    name: "submitHumanFeedback",
+    description:
+      "Process human feedback on a post draft and summarize a lesson to learn",
+    parameters: [
+      {
+        name: "feedbackType",
+        type: "string",
+        description: "too_generic | too_long | on_brand | good",
+        required: true,
+      },
+      { name: "topic", type: "string", description: "Post topic", required: true },
+    ],
+    handler: async ({ feedbackType, topic }) => {
+      const attempt = lastAttemptRef.current;
+      if (!attempt) throw new Error("No post attempt to give feedback on");
+
+      const res = await fetch("/api/agents/memory", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "summarize",
+          topic,
+          judgeFeedback: attempt.problems.join("; "),
+          humanFeedback: feedbackType,
+          problems: attempt.problems,
+          scoreBefore: attempt.judgeScore,
+        }),
+      });
+      if (!res.ok) throw new Error("Failed to summarize lesson");
+      const data = await res.json();
+
+      await fetch("/api/agents/memory", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "feedback",
+          feedbackType,
+          scoreBefore: attempt.judgeScore,
+        }),
+      });
+
+      pendingLessonRef.current = {
+        lesson: data.lesson,
+        scoreBefore: data.scoreBefore,
+        topic,
+        humanFeedback: feedbackType as HumanFeedbackType,
+      };
+
+      return { ...data, topic, feedbackType };
+    },
+    render: ({ status, result }) => {
+      if (status === "inProgress") {
+        return <div className="text-sm text-slate-500">Summarizing lesson...</div>;
+      }
+      if (status !== "complete" || !result?.lesson) return <></>;
+      return (
+        <LessonCard
+          lesson={result.lesson as string}
+          scoreBefore={result.scoreBefore as number}
+        />
+      );
+    },
+  });
+
+  useCopilotAction({
+    name: "storeLesson",
+    description: "Approve and store the learned lesson in Redis vector memory",
+    parameters: [
+      { name: "topic", type: "string", description: "Original post topic", required: true },
+      { name: "lesson", type: "string", description: "Lesson text to store", required: false },
+    ],
+    handler: async ({ topic, lesson }) => {
+      const profile = ensureProfile();
+      const pending = pendingLessonRef.current;
+      const lessonText = lesson ?? pending?.lesson;
+      const scoreBefore = pending?.scoreBefore ?? lastAttemptRef.current?.judgeScore ?? 5;
+
+      if (!lessonText) throw new Error("No lesson to store");
+
+      const res = await fetch("/api/memory/store", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          traced: true,
+          task: topic,
+          niche: profile.niche,
+          lesson: lessonText,
+          score_before: scoreBefore,
+          human_feedback: pending?.humanFeedback,
+        }),
+      });
+      if (!res.ok) throw new Error("Failed to store lesson");
+      const data = await res.json();
+      pendingLessonRef.current = null;
+      return data;
+    },
+    render: ({ status, result }) => {
+      if (status !== "complete" || !result?.lesson) return <></>;
+      const stored = result.lesson as { lesson: string; score_before: number };
+      return (
+        <LessonCard
+          lesson={stored.lesson}
+          scoreBefore={stored.score_before}
+          approved
+        />
+      );
+    },
+  });
+
+  useCopilotAction({
+    name: "retryWithLesson",
+    description:
+      "Retry post generation using lessons stored in Redis. Pass score_before from last attempt.",
+    parameters: [
+      { name: "topic", type: "string", description: "Post topic to retry", required: true },
+      {
+        name: "postType",
+        type: "string",
+        description: "story | insight | lesson | milestone | hot_take",
+        required: false,
+      },
+    ],
+    handler: async ({ topic, postType }) => {
+      const profile = ensureProfile();
+      const scoreBefore = lastAttemptRef.current?.judgeScore;
+      attemptCounterRef.current += 1;
+
+      const res = await fetch("/api/agents/orchestrate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          topic,
+          brandProfile: profile,
+          attemptNumber: attemptCounterRef.current,
+          postType: (postType as PostType) ?? "story",
+          scoreBefore,
+        }),
+      });
+      if (!res.ok) throw new Error("Retry failed");
+      const data = await res.json();
+      lastAttemptRef.current = data.attempt;
+      return data;
+    },
+    render: ({ status, result }) => {
+      if (status === "inProgress") {
+        return (
+          <div className="text-sm text-slate-500">
+            Retrying with learned lessons from Redis...
+          </div>
+        );
+      }
+      if (status !== "complete" || !result?.attempt) return <></>;
+      const attempt = result.attempt as PostAttempt;
+      return (
+        <>
+          <MemoryListCard lessons={attempt.retrievedMemories} topic={attempt.topic} />
+          <PostCard variants={attempt.variants} />
+          <JudgeBreakdown breakdown={attempt.breakdown} score={attempt.judgeScore} />
+          <AttemptCard
+            attempt={attempt}
+            weaveProject={result.weaveTraceId as string | undefined}
+          />
+        </>
+      );
+    },
+  });
+
+  useCopilotAction({
+    name: "copyPost",
+    description: "Copy the latest generated LinkedIn post text to clipboard",
+    parameters: [
+      { name: "variantIndex", type: "number", description: "0 for A, 1 for B", required: false },
+    ],
+    handler: async ({ variantIndex }) => {
+      const attempt = lastAttemptRef.current;
+      if (!attempt?.variants?.length) throw new Error("No post to copy");
+      const idx = variantIndex ?? 0;
+      const post = attempt.variants[idx] ?? attempt.variants[0];
+      const { formatPostForDisplay } = await import("@/lib/linkedin-format");
+      const text = formatPostForDisplay(post);
+      await navigator.clipboard.writeText(text);
+      return { copied: true, characterCount: post.characterCount };
+    },
+    render: ({ status, result }) => {
+      if (status !== "complete") return <></>;
+      return (
+        <div className="my-2 rounded-lg bg-green-50 px-3 py-2 text-sm text-green-800">
+          Copied to clipboard ({result?.characterCount as number} chars)
+        </div>
+      );
+    },
+  });
+}
