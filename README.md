@@ -8,11 +8,9 @@ A chat-only [CopilotKit](https://copilotkit.ai) app for LinkedIn personal brand 
 
 ## Live demo
 
-Deploy to Vercel after pushing to GitHub — see [Deploy](#deploy-to-vercel) below.
+**GitHub:** https://github.com/davidtingsu/brandmate
 
-```
-https://brandmate.vercel.app   (set your URL after deploy)
-```
+Deploy to Vercel — see [Deploy](#deploy-to-vercel) below. After deploy, your URL will look like `https://brandmate-*.vercel.app`.
 
 ## Architecture
 
