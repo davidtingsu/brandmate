@@ -39,8 +39,13 @@ Repo → **Settings** → **Secrets and variables** → **Actions** → **New re
 | `WEAVE_PROJECT` | e.g. `your-username/brandmate` | Yes |
 | `OPENAI_MODEL` | `gpt-4o-mini` | Optional (defaults in app) |
 | `OPENAI_EMBEDDING_MODEL` | `text-embedding-3-small` | Optional |
+| `NEXT_PUBLIC_SUPABASE_URL` | Supabase project URL | Yes (sessions) |
+| `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | `sb_publishable_...` | Yes (sessions) |
+| `SUPABASE_SECRET_KEY` | `sb_secret_...` | Yes (sessions) |
+| `SUPABASE_STORAGE_BUCKET` | `post-images` | Optional |
+| `OPENAI_IMAGE_MODEL` | `gpt-image-1` | Optional |
 
-**Important:** `REDIS_URL` in GitHub must be your **Redis Cloud** URL, not `localhost`.
+**Important:** `REDIS_URL` in GitHub must be your **Redis Cloud** URL, not `localhost`. Use Supabase **API Keys** tab (publishable + secret), not legacy anon/service_role.
 
 ### 4. Push to `main`
 

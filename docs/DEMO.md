@@ -8,7 +8,8 @@ Complete this demo in under 5 minutes (chat + Weave dashboard).
 
 ```bash
 docker compose up -d
-cp .env.local.example .env.local   # fill OPENAI_API_KEY, WANDB_API_KEY, WEAVE_PROJECT
+cp .env.local.example .env.local   # fill OPENAI_API_KEY, WANDB_API_KEY, WEAVE_PROJECT, Supabase keys
+# Run supabase/migrations/001_sessions.sql in Supabase SQL Editor; create post-images bucket
 npm run dev
 ```
 
@@ -28,7 +29,7 @@ Open http://localhost:3000
 
    Watch generative cards appear:
    - **MemoryListCard** (no lessons yet)
-   - **PostCard** with Variant A/B
+   - **PostCard** with LinkedIn **Preview** tab (feed mock) + Variant A/B
    - **JudgeBreakdown** (likely ~5/10 on first try)
    - **AttemptCard** with score
    - **HumanFeedbackButtons**
@@ -82,10 +83,26 @@ Open http://localhost:3000
 
 Coach calls `copyPost` → green confirmation toast in chat.
 
+## LinkedIn previews (text, image, carousel)
+
+- **Text post:** Preview tab shows feed mock (avatar, caption, engagement bar).
+- **Post with image:** `Write a text post with an image about X` → image below caption in preview.
+- **Carousel:** `Write a carousel about X` → swipeable slides with page indicator.
+- Ambiguous format triggers **FormatPickerCard** (Text / Post with Image / Carousel).
+
+## Chat sessions (Supabase)
+
+1. Sidebar lists saved chats when Supabase env vars are set.
+2. **+ New chat** starts a fresh session.
+3. **Delete** (×) removes a session from Supabase.
+4. Switching sessions restores **GenerativeCardReplay** for past post drafts.
+
 ## Troubleshooting
 
 | Issue | Fix |
 |-------|-----|
 | Redis connection error | `docker compose up -d` and check `REDIS_URL=redis://localhost:6380` (not plain redis on 6379) |
 | Weave traces missing | Set `WANDB_API_KEY` and `WEAVE_PROJECT` in `.env.local` |
+| Sessions sidebar empty | Run `supabase/migrations/001_sessions.sql`; set publishable + secret keys |
+| Post with Image fails | Create `post-images` bucket in Supabase Storage; set `OPENAI_IMAGE_MODEL` |
 | OpenAI errors | Check API key; set $15/mo limit at platform.openai.com |

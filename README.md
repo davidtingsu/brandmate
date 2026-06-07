@@ -99,7 +99,7 @@ GitHub Actions auto-sync: see [docs/CI_SETUP.md](docs/CI_SETUP.md).
 1. Push to **public** GitHub repo `brandmate` (no secrets in git)
 2. Provision [Redis Cloud](https://redis.io/cloud) free tier (30MB)
 3. Import repo at [vercel.com/new](https://vercel.com/new)
-4. Set env vars: `OPENAI_API_KEY`, `REDIS_URL` (rediss://), `WANDB_API_KEY`, `WEAVE_PROJECT`
+4. Set env vars: `OPENAI_API_KEY`, `REDIS_URL` (rediss://), `WANDB_API_KEY`, `WEAVE_PROJECT`, Supabase (`NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`, `SUPABASE_SECRET_KEY`)
 5. Deploy → add live URL to this README
 
 Or use GitHub Actions (`.github/workflows/deploy.yml`) with repository secrets.
@@ -117,11 +117,15 @@ Traced ops: `orchestratePostLoop`, `searchMemories`, `generatePost`, `judgePost`
 ## Project structure
 
 ```
-app/page.tsx              # CopilotChat only
+app/BrandMateApp.tsx      # Chat + session sidebar + CopilotKit
 hooks/usePostActions.tsx  # CopilotKit actions + generative render
+hooks/useGenerativeUI.tsx # HITL format picker + suggestions
+components/linkedin/      # LinkedIn feed preview mocks
 components/generative/    # PostCard, AttemptCard, LessonCard, etc.
+lib/sessions/             # Supabase session store
 lib/weave/ops.ts          # All weave.op functions
 lib/redis/                # Vector lesson store
+supabase/migrations/      # chat_threads + chat_messages SQL
 instrumentation.ts        # weave.init on server start
 ```
 
