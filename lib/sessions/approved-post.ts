@@ -1,4 +1,12 @@
+import { isProfileComplete } from "@/lib/brand-profile-storage";
 import type { BrandProfile, ChatMessage, PostAttempt, PostBrandingOptions } from "@/lib/types";
+
+const PREVIEW_PROFILE_FALLBACK: BrandProfile = {
+  name: "Your Name",
+  niche: "Professional",
+  audience: "",
+  voice: "",
+};
 
 export interface ApprovedPostRecord {
   attempt: PostAttempt;
@@ -11,6 +19,16 @@ export function findBrandProfile(messages: ChatMessage[]): BrandProfile | null {
   const meta = messages.find((m) => m.metadata?.type === "brand_profile");
   if (!meta?.metadata?.profile) return null;
   return meta.metadata.profile as BrandProfile;
+}
+
+/** Session profile first, then client-stored profile (onboard / ProfileForm). */
+export function resolvePreviewBrandProfile(
+  sessionProfile: BrandProfile | null,
+  storedProfile?: BrandProfile | null
+): BrandProfile {
+  if (sessionProfile && isProfileComplete(sessionProfile)) return sessionProfile;
+  if (storedProfile && isProfileComplete(storedProfile)) return storedProfile;
+  return PREVIEW_PROFILE_FALLBACK;
 }
 
 export function findApprovedPost(

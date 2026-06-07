@@ -1,29 +1,28 @@
 "use client";
 
 import { LinkedInFeedPage } from "@/components/feed/LinkedInFeedPage";
+import { useBrandProfile } from "@/contexts/BrandProfileContext";
+import { loadStoredProfile } from "@/lib/brand-profile-storage";
 import {
   findApprovedPost,
   findBrandProfile,
   findLatestPostAttempt,
+  resolvePreviewBrandProfile,
 } from "@/lib/sessions/approved-post";
 import type { BrandProfile, ChatMessage } from "@/lib/types";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
 
-const FALLBACK_PROFILE: BrandProfile = {
-  name: "Your Name",
-  niche: "Professional",
-  audience: "",
-  voice: "",
-};
-
 export default function PreviewPage() {
   const params = useParams();
   const sessionId = params.sessionId as string;
+  const { brandProfile } = useBrandProfile();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [profile, setProfile] = useState<BrandProfile>(FALLBACK_PROFILE);
+  const [profile, setProfile] = useState<BrandProfile>(() =>
+    resolvePreviewBrandProfile(null, loadStoredProfile() ?? brandProfile)
+  );
   const [post, setPost] = useState<import("@/lib/types").LinkedInPost | null>(
     null
   );
@@ -41,7 +40,10 @@ export default function PreviewPage() {
         if (!res.ok) throw new Error("Could not load post");
         const { messages } = (await res.json()) as { messages: ChatMessage[] };
 
-        const loadedProfile = findBrandProfile(messages) ?? FALLBACK_PROFILE;
+        const loadedProfile = resolvePreviewBrandProfile(
+          findBrandProfile(messages),
+          loadStoredProfile() ?? brandProfile
+        );
         const approved = findApprovedPost(messages);
         const latest = findLatestPostAttempt(messages);
         const source = approved ?? latest;
@@ -70,7 +72,7 @@ export default function PreviewPage() {
         setLoading(false);
       }
     })();
-  }, [sessionId]);
+  }, [sessionId, brandProfile]);
 
   if (loading) {
     return (

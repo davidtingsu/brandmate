@@ -4,7 +4,6 @@ import { AttemptCard } from "@/components/generative/AttemptCard";
 import { HumanFeedbackButtons } from "@/components/generative/HumanFeedbackButtons";
 import { JudgeBreakdown } from "@/components/generative/JudgeBreakdown";
 import { LessonCard } from "@/components/generative/LessonCard";
-import { MemoryListCard } from "@/components/generative/MemoryListCard";
 import { PostCard } from "@/components/generative/PostCard";
 import type { WorkflowPhase } from "@/hooks/useBrandMateWorkflow";
 import type {
@@ -67,10 +66,6 @@ export function StudioResultsPanel({
       {phase === "generating" && (
         <p className="text-sm text-slate-500">Processing…</p>
       )}
-      <MemoryListCard
-        lessons={attempt.retrievedMemories}
-        topic={attempt.topic}
-      />
       <PostCard
         variants={attempt.variants}
         brandProfile={brandProfile}

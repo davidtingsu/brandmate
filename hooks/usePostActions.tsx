@@ -7,7 +7,6 @@ import { BrandProfileCard } from "@/components/generative/BrandProfileCard";
 import { HumanFeedbackButtons } from "@/components/generative/HumanFeedbackButtons";
 import { JudgeBreakdown } from "@/components/generative/JudgeBreakdown";
 import { LessonCard } from "@/components/generative/LessonCard";
-import { MemoryListCard } from "@/components/generative/MemoryListCard";
 import { PostCard } from "@/components/generative/PostCard";
 import { SystemDiagramCard } from "@/components/generative/SystemDiagramCard";
 import { useBrandProfile } from "@/contexts/BrandProfileContext";
@@ -179,10 +178,6 @@ export function usePostActions() {
       const { showFeedback = true, showPreviewCta = false } = options;
       return (
         <>
-          <MemoryListCard
-            lessons={attempt.retrievedMemories}
-            topic={attempt.topic}
-          />
           <PostCard
             variants={attempt.variants}
             brandProfile={brandProfile}
@@ -379,6 +374,7 @@ export function usePostActions() {
       lastAttemptRef.current = attempt;
       setLastAttempt(attempt, data.weaveTraceId as string | undefined);
       const sessionId = await ensureSession();
+      await persistProfile(profile);
       await persistAttempt(
         {
           attempt,
@@ -402,6 +398,7 @@ export function usePostActions() {
     [
       ensureProfile,
       ensureSession,
+      persistProfile,
       persistAttempt,
       sessionsEnabled,
       setLastAttempt,

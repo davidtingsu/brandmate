@@ -2,7 +2,6 @@
 
 import { AttemptCard } from "@/components/generative/AttemptCard";
 import { JudgeBreakdown } from "@/components/generative/JudgeBreakdown";
-import { MemoryListCard } from "@/components/generative/MemoryListCard";
 import { PostCard } from "@/components/generative/PostCard";
 import type { BrandProfile, PostAttempt } from "@/lib/types";
 
@@ -25,7 +24,6 @@ export function GenerativeCardReplay({
   return (
     <div className="my-2 rounded-lg border border-dashed border-slate-200 bg-slate-50/50 p-2">
       <p className="mb-2 text-xs font-medium text-slate-500">Restored draft</p>
-      <MemoryListCard lessons={attempt.retrievedMemories} topic={attempt.topic} />
       <PostCard
         variants={attempt.variants}
         brandProfile={brandProfile}
