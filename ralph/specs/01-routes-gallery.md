@@ -24,6 +24,13 @@ Gallery cards avoid nested-button hydration.
 
 - AC1: `PostsGallery` uses non-button card click pattern
 
+## REQ-GALLERY-005
+
+Gallery delete removes post without triggering card navigation.
+
+- AC1: Delete button calls `stopPropagation` so card `onClick` does not fire
+- AC2: `DELETE /api/sessions/:id` removes thread; UI updates via `setThreads`
+
 ## Verification
 
-- automated: `ralph/checks/static/guided-flow.sh` (gallery grep), build
+- automated: `ralph/checks/static/guided-flow.sh`, `gallery-delete.sh`, build

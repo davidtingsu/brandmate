@@ -7,7 +7,9 @@ import {
   useContext,
   useMemo,
   useState,
+  type Dispatch,
   type ReactNode,
+  type SetStateAction,
 } from "react";
 
 interface ChatSessionContextValue {
@@ -16,7 +18,7 @@ interface ChatSessionContextValue {
   copilotThreadId: string;
   sessionsEnabled: boolean;
   loading: boolean;
-  setThreads: (threads: ChatThread[]) => void;
+  setThreads: Dispatch<SetStateAction<ChatThread[]>>;
   setActiveSessionId: (id: string | null) => void;
   setCopilotThreadId: (id: string) => void;
   setSessionsEnabled: (v: boolean) => void;

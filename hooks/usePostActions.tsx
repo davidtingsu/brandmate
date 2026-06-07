@@ -1,5 +1,6 @@
 "use client";
 
+import { CarouselRenderProgress } from "@/components/create/CarouselRenderProgress";
 import { ApprovePostCard } from "@/components/generative/ApprovePostCard";
 import { AttemptCard } from "@/components/generative/AttemptCard";
 import { BrandProfileCard } from "@/components/generative/BrandProfileCard";
@@ -295,12 +296,37 @@ export function usePostActions() {
         postFormat === "carousel" &&
         attempt.variants[0]?.slides?.length
       ) {
+        const pendingSlides = attempt.variants[0].slides!.map((slide) => ({
+          ...slide,
+          imageUrl: undefined,
+          pngStatus: "pending" as const,
+        }));
+        attempt = {
+          ...attempt,
+          variants: attempt.variants.map((v, i) =>
+            i === 0 ? { ...v, slides: pendingSlides } : v
+          ),
+        };
+        lastAttemptRef.current = attempt;
+        setLastAttempt(attempt, data.weaveTraceId as string | undefined);
+
         const renderedSlides = await streamRender({
-          slides: attempt.variants[0].slides!,
+          slides: pendingSlides,
           portraitImageUrl,
           topic: params.topic,
           brandProfile: profile,
           branding,
+          onSlidesUpdate: (slides) => {
+            const updated = {
+              ...attempt,
+              variants: attempt.variants.map((v, i) =>
+                i === 0 ? { ...v, slides } : v
+              ),
+            };
+            attempt = updated;
+            lastAttemptRef.current = updated;
+            setLastAttempt(updated, data.weaveTraceId as string | undefined);
+          },
         });
         attempt = {
           ...attempt,
@@ -492,6 +518,26 @@ export function usePostActions() {
     render: ({ status, result }) => {
       if (status === "inProgress") {
         const fmt = lastFormatRef.current;
+        const renderingAttempt = lastAttemptRef.current;
+        if (
+          fmt === "carousel" &&
+          carouselRenderState.phase === "rendering" &&
+          renderingAttempt?.variants[0]?.slides?.length
+        ) {
+          return (
+            <div className="my-2 space-y-3">
+              <CarouselRenderProgress state={carouselRenderState} />
+              <PostCard
+                variants={renderingAttempt.variants}
+                brandProfile={brandProfile}
+                topic={renderingAttempt.topic}
+                branding={
+                  renderingAttempt.branding ?? lastBrandingRef.current
+                }
+              />
+            </div>
+          );
+        }
         return (
           <div className="my-2 text-sm text-slate-500">
             {fmt === "carousel"

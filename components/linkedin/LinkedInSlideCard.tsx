@@ -1,5 +1,6 @@
 "use client";
 
+import { CarouselSlideSkeleton } from "@/components/linkedin/CarouselSlideSkeleton";
 import { PostBrandingOverlay } from "@/components/linkedin/PostBrandingOverlay";
 import type { BrandProfile, CarouselSlide, PostBrandingOptions } from "@/lib/types";
 
@@ -19,6 +20,27 @@ export function LinkedInSlideCard({
   branding,
 }: LinkedInSlideCardProps) {
   const isCover = slide.index === 0;
+  const isGenerating =
+    !slide.imageUrl &&
+    (slide.pngStatus === "pending" ||
+      slide.pngStatus === "rendering" ||
+      slide.pngStatus === "error");
+
+  if (isGenerating) {
+    return (
+      <CarouselSlideSkeleton
+        slideIndex={slide.index}
+        totalSlides={totalSlides}
+        status={
+          slide.pngStatus === "error"
+            ? "error"
+            : slide.pngStatus === "rendering"
+              ? "rendering"
+              : "pending"
+        }
+      />
+    );
+  }
 
   if (slide.imageUrl) {
     return (

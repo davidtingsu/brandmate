@@ -37,14 +37,24 @@ export function useCarouselRender() {
       topic?: string;
       brandProfile?: BrandProfile;
       branding?: PostBrandingOptions;
+      onSlidesUpdate?: (slides: CarouselSlide[]) => void;
     }): Promise<CarouselSlide[]> => {
       const total = input.slides.length;
+      let liveSlides: CarouselSlide[] = input.slides.map((slide) => ({
+        ...slide,
+        pngStatus: slide.pngStatus ?? "pending",
+        imageUrl: slide.imageUrl,
+      }));
+
+      const publishSlides = () => input.onSlidesUpdate?.(liveSlides);
+
       setState({
         phase: "rendering",
         currentSlide: 0,
         totalSlides: total,
-        slideStatuses: input.slides.map(() => "pending"),
+        slideStatuses: liveSlides.map((slide) => slide.pngStatus ?? "pending"),
       });
+      publishSlides();
 
       const res = await fetch("/api/agents/carousel/render", {
         method: "POST",
@@ -63,7 +73,6 @@ export function useCarouselRender() {
       const reader = res.body.getReader();
       const decoder = new TextDecoder();
       let buffer = "";
-      let finalSlides = input.slides;
 
       while (true) {
         const { done, value } = await reader.read();
@@ -79,6 +88,12 @@ export function useCarouselRender() {
           try {
             const event = JSON.parse(json) as CarouselRenderProgressEvent;
             if (event.type === "progress" && event.slideIndex !== undefined) {
+              liveSlides = liveSlides.map((slide, i) =>
+                i === event.slideIndex
+                  ? { ...slide, pngStatus: "rendering" as const }
+                  : slide
+              );
+              publishSlides();
               setState((s) => ({
                 ...s,
                 currentSlide: event.slideIndex! + 1,
@@ -88,25 +103,49 @@ export function useCarouselRender() {
               }));
             }
             if (event.type === "slide_done" && event.slideIndex !== undefined) {
+              if (event.slides) {
+                liveSlides = event.slides;
+                publishSlides();
+              } else {
+                liveSlides = liveSlides.map((slide, i) =>
+                  i === event.slideIndex
+                    ? { ...slide, pngStatus: "done" as const }
+                    : slide
+                );
+                publishSlides();
+              }
               setState((s) => ({
                 ...s,
                 slideStatuses: s.slideStatuses.map((st, i) =>
                   i === event.slideIndex ? "done" : st
                 ),
               }));
-              if (event.slides) {
-                finalSlides = event.slides;
-              }
             }
             if (event.type === "complete" && event.slides) {
-              finalSlides = event.slides;
+              liveSlides = event.slides;
+              publishSlides();
               setState((s) => ({
                 ...s,
                 phase: "complete",
                 slideStatuses: event.slides!.map((sl) => sl.pngStatus ?? "done"),
               }));
             }
-            if (event.type === "error") {
+            if (event.type === "error" && event.slideIndex !== undefined) {
+              liveSlides = liveSlides.map((slide, i) =>
+                i === event.slideIndex
+                  ? { ...slide, pngStatus: "error" as const }
+                  : slide
+              );
+              publishSlides();
+              setState((s) => ({
+                ...s,
+                phase: "error",
+                error: event.error,
+                slideStatuses: s.slideStatuses.map((st, i) =>
+                  i === event.slideIndex ? "error" : st
+                ),
+              }));
+            } else if (event.type === "error") {
               setState((s) => ({
                 ...s,
                 phase: "error",
@@ -119,7 +158,7 @@ export function useCarouselRender() {
         }
       }
 
-      return finalSlides;
+      return liveSlides;
     },
     []
   );

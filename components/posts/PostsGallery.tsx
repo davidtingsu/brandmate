@@ -1,7 +1,9 @@
 "use client";
 
 import { useChatSessionContext } from "@/contexts/ChatSessionContext";
+import { useSessionLoader } from "@/hooks/useSessionLoader";
 import type { ChatThread } from "@/lib/types";
+import { useState } from "react";
 
 interface PostsGalleryProps {
   onNewPost: () => void;
@@ -23,13 +25,31 @@ export function PostsGallery({ onNewPost, onSelectPost }: PostsGalleryProps) {
     loading,
     activeSessionId,
     setThreads,
+    setActiveSessionId,
   } = useChatSessionContext();
+  const { loadSessions } = useSessionLoader();
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   const handleDelete = async (id: string) => {
     if (!confirm("Delete this post?")) return;
-    const res = await fetch(`/api/sessions/${id}`, { method: "DELETE" });
-    if (!res.ok) return;
-    setThreads(threads.filter((t) => t.id !== id));
+
+    setDeletingId(id);
+    try {
+      const res = await fetch(`/api/sessions/${id}`, { method: "DELETE" });
+      if (!res.ok) {
+        const body = (await res.json().catch(() => ({}))) as { error?: string };
+        alert(body.error ?? "Failed to delete post");
+        return;
+      }
+
+      setThreads((prev) => prev.filter((t) => t.id !== id));
+      if (activeSessionId === id) {
+        setActiveSessionId(null);
+      }
+      await loadSessions();
+    } finally {
+      setDeletingId(null);
+    }
   };
 
   if (!sessionsEnabled) {
@@ -146,11 +166,15 @@ export function PostsGallery({ onNewPost, onSelectPost }: PostsGalleryProps) {
                 </div>
                 <button
                   type="button"
-                  onClick={() => void handleDelete(thread.id)}
-                  className="absolute right-3 top-3 rounded-md px-2 py-1 text-xs text-slate-400 opacity-0 transition hover:bg-red-50 hover:text-red-600 group-hover:opacity-100"
+                  disabled={deletingId === thread.id}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    void handleDelete(thread.id);
+                  }}
+                  className="absolute right-3 top-3 rounded-md px-2 py-1 text-xs text-slate-400 opacity-0 transition hover:bg-red-50 hover:text-red-600 disabled:opacity-50 group-hover:opacity-100"
                   aria-label="Delete post"
                 >
-                  Delete
+                  {deletingId === thread.id ? "Deleting…" : "Delete"}
                 </button>
               </div>
             </li>
