@@ -1,8 +1,6 @@
 "use client";
 
-import { AttemptCard } from "@/components/generative/AttemptCard";
-import { JudgeBreakdown } from "@/components/generative/JudgeBreakdown";
-import { PostCard } from "@/components/generative/PostCard";
+import { PostAttemptReplay } from "@/components/generative/PostAttemptReplay";
 import type { BrandProfile, PostAttempt } from "@/lib/types";
 
 interface GenerativeCardReplayProps {
@@ -24,14 +22,11 @@ export function GenerativeCardReplay({
   return (
     <div className="my-2 rounded-lg border border-dashed border-slate-200 bg-slate-50/50 p-2">
       <p className="mb-2 text-xs font-medium text-slate-500">Restored draft</p>
-      <PostCard
-        variants={attempt.variants}
+      <PostAttemptReplay
+        attempt={attempt}
         brandProfile={brandProfile}
-        topic={attempt.topic}
-        branding={attempt.branding}
+        weaveTraceId={weaveTraceId}
       />
-      <JudgeBreakdown breakdown={attempt.breakdown} score={attempt.judgeScore} />
-      <AttemptCard attempt={attempt} weaveProject={weaveTraceId} />
     </div>
   );
 }

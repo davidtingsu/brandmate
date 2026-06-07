@@ -8,7 +8,6 @@ import { HumanFeedbackButtons } from "@/components/generative/HumanFeedbackButto
 import { JudgeBreakdown } from "@/components/generative/JudgeBreakdown";
 import { LessonCard } from "@/components/generative/LessonCard";
 import { PostCard } from "@/components/generative/PostCard";
-import { SystemDiagramCard } from "@/components/generative/SystemDiagramCard";
 import { useBrandProfile } from "@/contexts/BrandProfileContext";
 import { useDiagramAgent } from "@/hooks/useDiagramAgent";
 import { useChatSessionContext } from "@/contexts/ChatSessionContext";
@@ -28,25 +27,12 @@ import type { GenerationPreview } from "@/lib/generation-estimates";
 import { summarizePostTitle } from "@/lib/sessions/summarize-title";
 import { useCarouselRender } from "@/hooks/useCarouselRender";
 import { useCopilotAction, useCopilotReadable } from "@copilotkit/react-core";
+import { deriveGenerateParamsFromAttempt } from "@/lib/create-flow/derive-generate-values";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 
-export interface GeneratePostParams {
-  topic: string;
-  format?: PostFormat;
-  includeImage?: boolean;
-  imageStyle?: string;
-  slideCount?: number;
-  postType?: PostType;
-  imageUrl?: string;
-  portraitImageUrl?: string;
-  includeHandle?: boolean;
-  includeProfileImage?: boolean;
-  branding?: PostBrandingOptions;
-  userFeedback?: string;
-  judgeRevisionContext?: string;
-  scoreBefore?: number;
-}
+export type { GeneratePostParams } from "@/lib/create-flow/generate-params";
+import type { GeneratePostParams } from "@/lib/create-flow/generate-params";
 
 function formatJudgeRevisionContext(attempt: PostAttempt): string {
   const lines: string[] = [`Prior judge score: ${attempt.judgeScore}/10`];
@@ -115,6 +101,10 @@ export function usePostActions() {
       }
       const format = lastAttempt.variants[0]?.format;
       if (format) lastFormatRef.current = format;
+      if (!lastGenerateParamsRef.current) {
+        lastGenerateParamsRef.current =
+          deriveGenerateParamsFromAttempt(lastAttempt);
+      }
     }
   }, [lastAttempt]);
 
@@ -218,13 +208,6 @@ export function usePostActions() {
             topic={attempt.topic}
             branding={attempt.branding ?? lastBrandingRef.current}
           />
-          {attempt.systemDiagram && attempt.variants[0]?.image?.url && (
-            <SystemDiagramCard
-              diagram={attempt.systemDiagram}
-              imageUrl={attempt.variants[0].image!.url}
-              agentLabel="diagram_explainer"
-            />
-          )}
           {isAttemptMediaComplete(attempt) && (
             <>
               <JudgeBreakdown
@@ -232,7 +215,7 @@ export function usePostActions() {
                 score={attempt.judgeScore}
               />
               <AttemptCard attempt={attempt} weaveProject={weaveTraceId} />
-              {showFeedback && (
+              {showFeedback && attempt.variants[0]?.format !== "diagram" && (
                 <HumanFeedbackButtons
                   onSelect={async (feedback) => {
                     await fetch("/api/agents/memory", {

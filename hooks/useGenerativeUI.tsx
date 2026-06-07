@@ -4,6 +4,7 @@ import { GeneratePostForm } from "@/components/forms/GeneratePostForm";
 import { FormatPickerCard } from "@/components/generative/FormatPickerCard";
 import { useBrandProfile } from "@/contexts/BrandProfileContext";
 import { useCreateFlow } from "@/contexts/CreateFlowContext";
+import { deriveGenerateValuesFromAttempt } from "@/lib/create-flow/derive-generate-values";
 import {
   useCopilotAdditionalInstructions,
   useCopilotReadable,
@@ -31,7 +32,13 @@ const STAGE_INSTRUCTIONS = {
 
 export function useGenerativeUI() {
   const { brandProfile } = useBrandProfile();
-  const { stage } = useCreateFlow();
+  const { stage, lastAttempt } = useCreateFlow();
+  const hasExistingDraft = Boolean(lastAttempt?.variants?.length);
+  const formInitialValues = useMemo(
+    () =>
+      lastAttempt ? deriveGenerateValuesFromAttempt(lastAttempt) : undefined,
+    [lastAttempt]
+  );
 
   const instructions = useMemo(
     () => STAGE_INSTRUCTIONS[stage],
@@ -61,6 +68,9 @@ export function useGenerativeUI() {
           hasProfile={hasProfile}
           hasHandle={Boolean(brandProfile.handle?.trim())}
           hasProfileImage={Boolean(brandProfile.profileImageUrl)}
+          initialValues={formInitialValues}
+          submitDisabled={hasExistingDraft}
+          readOnly={hasExistingDraft}
           onSubmit={async (values) => {
             respond(values);
           }}

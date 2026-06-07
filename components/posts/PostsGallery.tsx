@@ -10,12 +10,21 @@ interface PostsGalleryProps {
   onSelectPost: (thread: GalleryThread) => void;
 }
 
-function formatDate(iso: string) {
-  return new Date(iso).toLocaleDateString(undefined, {
+function formatCreatedAt(iso: string) {
+  return new Date(iso).toLocaleString(undefined, {
     month: "short",
     day: "numeric",
     year: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
   });
+}
+
+function sortThreadsByCreatedAt(threads: GalleryThread[]): GalleryThread[] {
+  return [...threads].sort(
+    (a, b) =>
+      new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+  );
 }
 
 function threadTitle(thread: GalleryThread): string {
@@ -33,6 +42,7 @@ export function PostsGallery({ onNewPost, onSelectPost }: PostsGalleryProps) {
   } = useChatSessionContext();
   const { loadSessions } = useSessionLoader();
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const sortedThreads = sortThreadsByCreatedAt(threads);
 
   const handleDelete = async (id: string) => {
     setDeletingId(id);
@@ -122,7 +132,7 @@ export function PostsGallery({ onNewPost, onSelectPost }: PostsGalleryProps) {
         </div>
       ) : (
         <ul className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {threads.map((thread) => {
+          {sortedThreads.map((thread) => {
             const galleryThread = thread as GalleryThread;
             const title = threadTitle(galleryThread);
             const previewImage = galleryThread.previewImageUrl;
@@ -163,7 +173,7 @@ export function PostsGallery({ onNewPost, onSelectPost }: PostsGalleryProps) {
                             {title}
                           </span>
                           <span className="mt-2 block text-xs text-slate-500">
-                            Updated {formatDate(thread.updated_at)}
+                            Created {formatCreatedAt(thread.created_at)}
                           </span>
                         </div>
                       </>
@@ -180,7 +190,7 @@ export function PostsGallery({ onNewPost, onSelectPost }: PostsGalleryProps) {
                           )}
                         </div>
                         <span className="mt-4 text-xs text-white/70">
-                          Updated {formatDate(thread.updated_at)}
+                          Created {formatCreatedAt(thread.created_at)}
                         </span>
                       </div>
                     )}

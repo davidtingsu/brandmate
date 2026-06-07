@@ -14,7 +14,7 @@ export async function listThreads(userId: string): Promise<ChatThread[]> {
     .from("chat_threads")
     .select("*")
     .eq("user_id", userId)
-    .order("updated_at", { ascending: false });
+    .order("created_at", { ascending: false });
 
   if (error) throw new Error(error.message);
   return (data ?? []) as ChatThread[];

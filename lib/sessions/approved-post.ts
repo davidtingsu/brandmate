@@ -47,17 +47,26 @@ export function findApprovedPost(
   };
 }
 
+export interface PostAttemptRecord {
+  attempt: PostAttempt;
+  weaveTraceId?: string;
+}
+
+export function findAllPostAttempts(
+  messages: ChatMessage[]
+): PostAttemptRecord[] {
+  return messages
+    .filter((m) => m.metadata?.type === "post_attempt" && m.metadata?.attempt)
+    .map((m) => ({
+      attempt: m.metadata!.attempt as PostAttempt,
+      weaveTraceId: m.metadata!.weaveTraceId as string | undefined,
+    }));
+}
+
 export function findLatestPostAttempt(
   messages: ChatMessage[]
-): { attempt: PostAttempt; weaveTraceId?: string } | null {
-  const attempts = messages.filter((m) => m.metadata?.type === "post_attempt");
-  const latest = attempts[attempts.length - 1];
-  if (!latest?.metadata?.attempt) return null;
-
-  return {
-    attempt: latest.metadata.attempt as PostAttempt,
-    weaveTraceId: latest.metadata.weaveTraceId as string | undefined,
-  };
+): PostAttemptRecord | null {
+  return findAllPostAttempts(messages).at(-1) ?? null;
 }
 
 export function resolvePreviewPost(messages: ChatMessage[]): {

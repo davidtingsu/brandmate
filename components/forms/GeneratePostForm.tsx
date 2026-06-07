@@ -2,7 +2,16 @@
 
 import { CAROUSEL_EXAMPLE_PORTRAIT } from "@/lib/config";
 import type { PostBrandingOptions, PostFormat } from "@/lib/types";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+
+type FormFormat = "text" | "image" | "carousel" | "diagram";
+
+function toFormFormat(values: Partial<GeneratePostValues>): FormFormat {
+  if (values.format === "carousel") return "carousel";
+  if (values.format === "diagram") return "diagram";
+  if (values.includeImage) return "image";
+  return "text";
+}
 
 export interface GeneratePostValues {
   topic: string;
@@ -18,6 +27,9 @@ interface GeneratePostFormProps {
   hasHandle?: boolean;
   hasProfileImage?: boolean;
   loading?: boolean;
+  initialValues?: Partial<GeneratePostValues>;
+  submitDisabled?: boolean;
+  readOnly?: boolean;
   onSubmit: (values: GeneratePostValues) => Promise<void>;
 }
 
@@ -26,12 +38,13 @@ export function GeneratePostForm({
   hasHandle = false,
   hasProfileImage = false,
   loading = false,
+  initialValues,
+  submitDisabled = false,
+  readOnly = false,
   onSubmit,
 }: GeneratePostFormProps) {
   const [topic, setTopic] = useState("");
-  const [format, setFormat] = useState<
-    "text" | "image" | "carousel" | "diagram"
-  >("text");
+  const [format, setFormat] = useState<FormFormat>("text");
   const [slideCount, setSlideCount] = useState(7);
   const [includeHandle, setIncludeHandle] = useState(true);
   const [includeProfileImage, setIncludeProfileImage] = useState(true);
@@ -39,6 +52,25 @@ export function GeneratePostForm({
   const [uploadingPortrait, setUploadingPortrait] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const portraitInputRef = useRef<HTMLInputElement>(null);
+  const fieldsDisabled = loading || readOnly;
+
+  useEffect(() => {
+    if (!initialValues) return;
+    if (initialValues.topic !== undefined) setTopic(initialValues.topic);
+    if (initialValues.slideCount !== undefined) {
+      setSlideCount(initialValues.slideCount);
+    }
+    if (initialValues.portraitImageUrl !== undefined) {
+      setPortraitImageUrl(initialValues.portraitImageUrl);
+    }
+    if (initialValues.branding) {
+      setIncludeHandle(initialValues.branding.includeHandle ?? true);
+      setIncludeProfileImage(
+        initialValues.branding.includeProfileImage ?? true
+      );
+    }
+    setFormat(toFormFormat(initialValues));
+  }, [initialValues]);
 
   const showBrandingToggles = format === "carousel" || format === "image";
   const brandingTarget = format === "carousel" ? "slides" : "image";
@@ -76,12 +108,13 @@ export function GeneratePostForm({
     }
   };
 
-  const formatBtn = (key: typeof format, label: string) => (
+  const formatBtn = (key: FormFormat, label: string) => (
     <button
       key={key}
       type="button"
       onClick={() => setFormat(key)}
-      className={`rounded-lg px-3 py-2 text-sm font-medium transition ${
+      disabled={fieldsDisabled}
+      className={`rounded-lg px-3 py-2 text-sm font-medium transition disabled:cursor-not-allowed disabled:opacity-60 ${
         format === key
           ? "bg-linkedin text-white"
           : "bg-white text-slate-700 ring-1 ring-slate-200 hover:bg-slate-50"
@@ -107,7 +140,8 @@ export function GeneratePostForm({
           onChange={(e) => setTopic(e.target.value)}
           placeholder="e.g. My transition from engineer to founder"
           className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm focus:border-linkedin focus:outline-none focus:ring-1 focus:ring-linkedin"
-          disabled={loading}
+          disabled={fieldsDisabled}
+          readOnly={readOnly}
         />
       </label>
 
@@ -135,7 +169,7 @@ export function GeneratePostForm({
               value={slideCount}
               onChange={(e) => setSlideCount(Number(e.target.value))}
               className="w-16 rounded border border-slate-200 px-2 py-1 text-sm"
-              disabled={loading}
+              disabled={fieldsDisabled}
             />
           </div>
           <div className="mb-3 rounded-lg border border-slate-100 bg-slate-50 p-3">
@@ -156,7 +190,7 @@ export function GeneratePostForm({
                 type="file"
                 accept="image/*"
                 className="hidden"
-                disabled={loading || uploadingPortrait}
+                disabled={fieldsDisabled || uploadingPortrait}
                 onChange={(e) => {
                   const file = e.target.files?.[0];
                   if (!file) return;
@@ -192,7 +226,7 @@ export function GeneratePostForm({
               <button
                 type="button"
                 onClick={() => portraitInputRef.current?.click()}
-                disabled={loading || uploadingPortrait}
+                disabled={fieldsDisabled || uploadingPortrait}
                 className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50"
               >
                 {uploadingPortrait ? "Uploading…" : "Upload portrait"}
@@ -200,7 +234,7 @@ export function GeneratePostForm({
               <button
                 type="button"
                 onClick={() => setPortraitImageUrl(CAROUSEL_EXAMPLE_PORTRAIT)}
-                disabled={loading}
+                disabled={fieldsDisabled}
                 className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-linkedin hover:bg-blue-50"
               >
                 Use example
@@ -209,7 +243,7 @@ export function GeneratePostForm({
                 <button
                   type="button"
                   onClick={() => setPortraitImageUrl(undefined)}
-                  disabled={loading}
+                  disabled={fieldsDisabled}
                   className="text-xs text-slate-500 hover:text-red-600"
                 >
                   Remove
@@ -230,7 +264,7 @@ export function GeneratePostForm({
               type="checkbox"
               checked={includeHandle}
               onChange={(e) => setIncludeHandle(e.target.checked)}
-              disabled={loading || !hasHandle}
+              disabled={fieldsDisabled || !hasHandle}
               className="rounded border-slate-300 text-linkedin focus:ring-linkedin"
             />
             <span>
@@ -245,7 +279,7 @@ export function GeneratePostForm({
               type="checkbox"
               checked={includeProfileImage}
               onChange={(e) => setIncludeProfileImage(e.target.checked)}
-              disabled={loading}
+              disabled={fieldsDisabled}
               className="rounded border-slate-300 text-linkedin focus:ring-linkedin"
             />
             <span>
@@ -265,11 +299,19 @@ export function GeneratePostForm({
 
       <button
         type="submit"
-        disabled={loading || !hasProfile || !topic.trim()}
+        disabled={
+          loading || !hasProfile || !topic.trim() || submitDisabled
+        }
         className="w-full rounded-lg bg-linkedin px-4 py-2.5 text-sm font-semibold text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
       >
         {loading ? "Generating…" : "Generate"}
       </button>
+      {readOnly && submitDisabled && (
+        <p className="mt-2 text-xs text-slate-500">
+          Draft already generated — use Regenerate or Retry with Judge feedback
+          below.
+        </p>
+      )}
     </form>
   );
 }

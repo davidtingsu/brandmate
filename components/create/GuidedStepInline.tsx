@@ -1,5 +1,6 @@
 "use client";
 
+import { PostAttemptHistory } from "@/components/create/PostAttemptHistory";
 import { PostGeneratingPreview } from "@/components/create/PostGeneratingPreview";
 import type { GeneratePostValues } from "@/components/forms/GeneratePostForm";
 import { GeneratePostForm } from "@/components/forms/GeneratePostForm";
@@ -10,8 +11,9 @@ import { useBrandProfile } from "@/contexts/BrandProfileContext";
 import { useCreateFlow } from "@/contexts/CreateFlowContext";
 import { usePostActionsContext } from "@/contexts/PostActionsContext";
 import { useSessionLoader } from "@/hooks/useSessionLoader";
+import { deriveGenerateValuesFromAttempt } from "@/lib/create-flow/derive-generate-values";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 
 function InlineCard({ children }: { children: React.ReactNode }) {
   return (
@@ -28,6 +30,7 @@ export function GuidedStepInline() {
     advanceToPreview,
     lastAttempt,
     lastWeaveTraceId,
+    attemptHistory,
   } = useCreateFlow();
   const {
     generatePost,
@@ -60,6 +63,12 @@ export function GuidedStepInline() {
 
   const profileComplete = Boolean(brandProfile.name && brandProfile.niche);
   const isGenerating = Boolean(generationPreview?.active);
+  const hasExistingDraft = Boolean(lastAttempt?.variants?.length);
+  const formInitialValues = useMemo(
+    () =>
+      lastAttempt ? deriveGenerateValuesFromAttempt(lastAttempt) : undefined,
+    [lastAttempt]
+  );
 
   if (stage === "post") {
     return (
@@ -74,6 +83,9 @@ export function GuidedStepInline() {
           hasHandle={Boolean(brandProfile.handle?.trim())}
           hasProfileImage={Boolean(brandProfile.profileImageUrl)}
           loading={generating}
+          initialValues={formInitialValues}
+          submitDisabled={hasExistingDraft}
+          readOnly={hasExistingDraft}
           onSubmit={handleGenerateSubmit}
         />
         {generationPreview?.active && (
@@ -86,6 +98,10 @@ export function GuidedStepInline() {
         )}
         {lastAttempt && !isGenerating && (
           <div className="mt-4 space-y-2">
+            <PostAttemptHistory
+              history={attemptHistory}
+              brandProfile={brandProfile}
+            />
             {renderAttemptCards(lastAttempt, lastWeaveTraceId, {
               showFeedback: true,
               showPreviewCta: false,

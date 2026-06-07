@@ -4,13 +4,17 @@ import {
   inferStudioStage,
   type StudioFlowStage,
 } from "@/lib/create-flow/stages";
-import { findLatestPostAttempt } from "@/lib/sessions/approved-post";
+import {
+  findAllPostAttempts,
+  type PostAttemptRecord,
+} from "@/lib/sessions/approved-post";
 import type { ChatMessage, PostAttempt } from "@/lib/types";
 import {
   createContext,
   useCallback,
   useContext,
   useMemo,
+  useRef,
   useState,
   type ReactNode,
 } from "react";
@@ -21,6 +25,7 @@ interface CreateFlowContextValue {
   advanceToPreview: () => void;
   lastAttempt: PostAttempt | null;
   lastWeaveTraceId: string | undefined;
+  attemptHistory: PostAttemptRecord[];
   setLastAttempt: (
     attempt: PostAttempt | null,
     weaveTraceId?: string
@@ -36,9 +41,38 @@ export function CreateFlowProvider({ children }: { children: ReactNode }) {
   const [lastWeaveTraceId, setLastWeaveTraceId] = useState<string | undefined>(
     undefined
   );
+  const [attemptHistory, setAttemptHistory] = useState<PostAttemptRecord[]>([]);
+  const lastAttemptRef = useRef<PostAttempt | null>(null);
+  const lastWeaveTraceIdRef = useRef<string | undefined>(undefined);
 
   const setLastAttempt = useCallback(
     (attempt: PostAttempt | null, weaveTraceId?: string) => {
+      const previous = lastAttemptRef.current;
+      if (
+        attempt &&
+        previous &&
+        attempt.attemptNumber > previous.attemptNumber
+      ) {
+        setAttemptHistory((history) => {
+          if (
+            history.some(
+              (record) => record.attempt.attemptNumber === previous.attemptNumber
+            )
+          ) {
+            return history;
+          }
+          return [
+            ...history,
+            {
+              attempt: previous,
+              weaveTraceId:
+                lastWeaveTraceIdRef.current ?? previous.weaveTraceId,
+            },
+          ];
+        });
+      }
+      lastAttemptRef.current = attempt;
+      lastWeaveTraceIdRef.current = weaveTraceId;
       setLastAttemptState(attempt);
       setLastWeaveTraceId(weaveTraceId);
     },
@@ -48,10 +82,20 @@ export function CreateFlowProvider({ children }: { children: ReactNode }) {
   const advanceToPreview = useCallback(() => setStage("preview"), []);
 
   const hydrateFromMessages = useCallback((messages: ChatMessage[]) => {
-    const latest = findLatestPostAttempt(messages);
+    const all = findAllPostAttempts(messages);
+    const latest = all.at(-1) ?? null;
     if (latest) {
+      lastAttemptRef.current = latest.attempt;
+      lastWeaveTraceIdRef.current = latest.weaveTraceId;
       setLastAttemptState(latest.attempt);
       setLastWeaveTraceId(latest.weaveTraceId);
+      setAttemptHistory(all.slice(0, -1));
+    } else {
+      lastAttemptRef.current = null;
+      lastWeaveTraceIdRef.current = undefined;
+      setLastAttemptState(null);
+      setLastWeaveTraceId(undefined);
+      setAttemptHistory([]);
     }
     setStage(
       inferStudioStage({
@@ -67,6 +111,7 @@ export function CreateFlowProvider({ children }: { children: ReactNode }) {
       advanceToPreview,
       lastAttempt,
       lastWeaveTraceId,
+      attemptHistory,
       setLastAttempt,
       hydrateFromMessages,
     }),
@@ -75,6 +120,7 @@ export function CreateFlowProvider({ children }: { children: ReactNode }) {
       advanceToPreview,
       lastAttempt,
       lastWeaveTraceId,
+      attemptHistory,
       setLastAttempt,
       hydrateFromMessages,
     ]

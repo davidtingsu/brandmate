@@ -75,13 +75,14 @@ export function StudioResultsPanel({
       <JudgeBreakdown breakdown={attempt.breakdown} score={attempt.judgeScore} />
       <AttemptCard attempt={attempt} weaveProject={weaveTraceId} />
 
-      {(phase === "awaiting_feedback" || phase === "generating") && (
-        <HumanFeedbackButtons
-          onSelect={onFeedback}
-          selected={selectedFeedback}
-          disabled={phase === "generating"}
-        />
-      )}
+      {(phase === "awaiting_feedback" || phase === "generating") &&
+        attempt.variants[0]?.format !== "diagram" && (
+          <HumanFeedbackButtons
+            onSelect={onFeedback}
+            selected={selectedFeedback}
+            disabled={phase === "generating"}
+          />
+        )}
 
       {pendingLesson && (phase === "feedback_done" || phase === "preview_ready") && (
         <>
