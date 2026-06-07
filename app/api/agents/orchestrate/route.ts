@@ -1,7 +1,7 @@
 import { runPostLoop } from "@/lib/agents/orchestrator";
 import { formatError } from "@/lib/weave/errors";
 import { initWeave } from "@/lib/weave/init";
-import type { BrandProfile, PostType } from "@/lib/types";
+import type { BrandProfile, PostBrandingOptions, PostType } from "@/lib/types";
 import { NextRequest, NextResponse } from "next/server";
 
 export async function POST(req: NextRequest) {
@@ -19,6 +19,7 @@ export async function POST(req: NextRequest) {
       imageUrl,
       slideCount,
       scoreBefore,
+      branding,
     }: {
       topic: string;
       brandProfile: BrandProfile;
@@ -30,6 +31,7 @@ export async function POST(req: NextRequest) {
       imageUrl?: string;
       slideCount?: number;
       scoreBefore?: number;
+      branding?: PostBrandingOptions;
     } = body;
 
     if (!topic || !brandProfile?.name) {
@@ -50,6 +52,7 @@ export async function POST(req: NextRequest) {
       imageUrl,
       slideCount,
       scoreBefore,
+      branding,
     });
 
     return NextResponse.json(result);

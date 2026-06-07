@@ -3,13 +3,18 @@
 import { LinkedInCarouselPreview } from "@/components/linkedin/LinkedInCarouselPreview";
 import { LinkedInTextPreview } from "@/components/linkedin/LinkedInTextPreview";
 import { formatPostForDisplay } from "@/lib/linkedin-format";
-import type { BrandProfile, LinkedInPost } from "@/lib/types";
+import type {
+  BrandProfile,
+  LinkedInPost,
+  PostBrandingOptions,
+} from "@/lib/types";
 import { useState } from "react";
 
 interface PostCardProps {
   variants: LinkedInPost[];
   brandProfile: BrandProfile;
   topic?: string;
+  branding?: PostBrandingOptions;
   onCopy?: (text: string) => void;
 }
 
@@ -19,6 +24,7 @@ export function PostCard({
   variants,
   brandProfile,
   topic,
+  branding,
   onCopy,
 }: PostCardProps) {
   const [activeIndex, setActiveIndex] = useState(0);
@@ -73,9 +79,14 @@ export function PostCard({
             post={post}
             profile={brandProfile}
             topic={topic}
+            branding={branding}
           />
         ) : (
-          <LinkedInTextPreview post={post} profile={brandProfile} />
+          <LinkedInTextPreview
+            post={post}
+            profile={brandProfile}
+            branding={branding}
+          />
         )
       ) : (
         <pre className="whitespace-pre-wrap rounded-lg bg-slate-50 p-3 text-sm leading-relaxed text-slate-700">

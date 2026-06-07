@@ -14,6 +14,15 @@ export interface BrandProfile {
   audience: string;
   voice: string;
   goals?: string;
+  /** LinkedIn handle, with or without leading @ */
+  handle?: string;
+  /** Public URL or data URL for profile photo */
+  profileImageUrl?: string;
+}
+
+export interface PostBrandingOptions {
+  includeHandle: boolean;
+  includeProfileImage: boolean;
 }
 
 export interface PostImage {
@@ -76,6 +85,7 @@ export interface PostAttempt {
   scoreBefore?: number;
   scoreAfter?: number;
   humanFeedback?: HumanFeedbackType;
+  branding?: PostBrandingOptions;
 }
 
 export interface GenerateInput {
@@ -149,6 +159,7 @@ export interface OrchestrateInput {
   slideCount?: number;
   scoreBefore?: number;
   niche?: string;
+  branding?: PostBrandingOptions;
 }
 
 export interface OrchestrateOutput {
@@ -172,4 +183,68 @@ export interface ChatMessage {
   content: string | null;
   metadata: Record<string, unknown>;
   created_at: string;
+}
+
+export type DiagramPhaseColor =
+  | "purple"
+  | "green"
+  | "brown"
+  | "blue"
+  | "yellow"
+  | "slate";
+
+export type DiagramNodeIcon =
+  | "browser"
+  | "client"
+  | "server"
+  | "dns"
+  | "database"
+  | "cache";
+
+export interface DiagramStep {
+  number?: number;
+  title: string;
+  description?: string;
+  items?: string[];
+  highlight?: string;
+  code?: string;
+}
+
+export interface DiagramNode {
+  id: string;
+  label: string;
+  icon?: DiagramNodeIcon;
+}
+
+export interface DiagramFlow {
+  from: string;
+  to: string;
+  label?: string;
+  style?: "solid" | "dashed";
+}
+
+export interface DiagramPhase {
+  id: string;
+  label: string;
+  color: DiagramPhaseColor;
+  steps: DiagramStep[];
+  nodes?: DiagramNode[];
+}
+
+export interface SystemDiagram {
+  title: string;
+  subtitle?: string;
+  phases: DiagramPhase[];
+  flows?: DiagramFlow[];
+  summary?: string;
+}
+
+export interface DiagramAgentInput {
+  concept: string;
+  context?: string;
+}
+
+export interface DiagramAgentOutput {
+  diagram: SystemDiagram;
+  agentId: "diagram_explainer";
 }

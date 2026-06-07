@@ -301,6 +301,7 @@ export async function runOrchestratePostLoop(
     scoreBefore: input.scoreBefore,
     scoreAfter: judged.score,
     weaveTraceId: process.env.WEAVE_PROJECT,
+    branding: input.branding,
   };
 
   return {

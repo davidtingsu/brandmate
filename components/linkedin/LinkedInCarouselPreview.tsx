@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
-import type { BrandProfile, LinkedInPost } from "@/lib/types";
+import type { BrandProfile, LinkedInPost, PostBrandingOptions } from "@/lib/types";
 import { LinkedInCaption } from "./LinkedInCaption";
 import { LinkedInEngagementBar } from "./LinkedInEngagementBar";
 import { LinkedInPostHeader } from "./LinkedInPostHeader";
@@ -11,12 +11,14 @@ interface LinkedInCarouselPreviewProps {
   post: LinkedInPost;
   profile: BrandProfile;
   topic?: string;
+  branding?: PostBrandingOptions;
 }
 
 export function LinkedInCarouselPreview({
   post,
   profile,
   topic,
+  branding,
 }: LinkedInCarouselPreviewProps) {
   const slides = post.slides ?? [];
   const [activeIndex, setActiveIndex] = useState(0);
@@ -53,6 +55,8 @@ export function LinkedInCarouselPreview({
                   slide={slide}
                   topic={topic}
                   totalSlides={slides.length}
+                  profile={profile}
+                  branding={branding}
                 />
               </div>
             ))}

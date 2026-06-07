@@ -1,7 +1,8 @@
 "use client";
 
-import type { BrandProfile, LinkedInPost } from "@/lib/types";
+import { PostBrandingOverlay } from "@/components/linkedin/PostBrandingOverlay";
 import { formatPostForDisplay } from "@/lib/linkedin-format";
+import type { BrandProfile, LinkedInPost, PostBrandingOptions } from "@/lib/types";
 import { LinkedInCaption } from "./LinkedInCaption";
 import { LinkedInEngagementBar } from "./LinkedInEngagementBar";
 import { LinkedInPostHeader } from "./LinkedInPostHeader";
@@ -9,9 +10,14 @@ import { LinkedInPostHeader } from "./LinkedInPostHeader";
 interface LinkedInTextPreviewProps {
   post: LinkedInPost;
   profile: BrandProfile;
+  branding?: PostBrandingOptions;
 }
 
-export function LinkedInTextPreview({ post, profile }: LinkedInTextPreviewProps) {
+export function LinkedInTextPreview({
+  post,
+  profile,
+  branding,
+}: LinkedInTextPreviewProps) {
   const caption = formatPostForDisplay({
     ...post,
     slides: undefined,
@@ -31,6 +37,13 @@ export function LinkedInTextPreview({ post, profile }: LinkedInTextPreviewProps)
             alt={post.image.alt ?? "Post image"}
             className="h-auto w-full object-cover"
           />
+          {branding && (
+            <PostBrandingOverlay
+              profile={profile}
+              branding={branding}
+              className="absolute bottom-3 left-3"
+            />
+          )}
         </div>
       )}
       <div className="p-4">

@@ -30,6 +30,7 @@ export function GenerativeCardReplay({
         variants={attempt.variants}
         brandProfile={brandProfile}
         topic={attempt.topic}
+        branding={attempt.branding}
       />
       <JudgeBreakdown breakdown={attempt.breakdown} score={attempt.judgeScore} />
       <AttemptCard attempt={attempt} weaveProject={weaveTraceId} />
