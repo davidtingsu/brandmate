@@ -1,5 +1,10 @@
-import BrandMateApp from "./BrandMateApp";
+import { GalleryHome } from "@/components/gallery/GalleryHome";
+import { BrandMateProviders } from "@/components/providers/BrandMateProviders";
 
 export default function HomePage() {
-  return <BrandMateApp />;
+  return (
+    <BrandMateProviders>
+      <GalleryHome />
+    </BrandMateProviders>
+  );
 }

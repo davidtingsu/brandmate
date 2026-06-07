@@ -15,3 +15,11 @@ body {
 .copilotKitChat {
   font-family: inherit;
 }
+
+.brandmate-layout {
+  min-height: calc(100vh - 5rem);
+}
+
+.copilotKitChat {
+  min-height: calc(100vh - 8rem);
+}
