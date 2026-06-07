@@ -12,7 +12,11 @@ export const MAX_TOKENS = {
   judge: 400,
   memory: 150,
   carousel: 1200,
+  diagram: 1400,
 } as const;
+
+/** Dedicated agent id for ByteByteGo-style system diagram explanations */
+export const DIAGRAM_EXPLAINER_AGENT_ID = "diagram_explainer";
 
 export const DEFAULT_SLIDE_COUNT = 7;
 export const MIN_SLIDE_COUNT = 5;
