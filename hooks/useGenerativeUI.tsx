@@ -10,22 +10,23 @@ import { useSessionLoader } from "@/hooks/useSessionLoader";
 import type { BrandProfile } from "@/lib/types";
 import {
   useCopilotAdditionalInstructions,
+  useCopilotReadable,
   useHumanInTheLoop,
 } from "@copilotkit/react-core";
 import { useCallback, useMemo } from "react";
 
 const STAGE_INSTRUCTIONS = {
   brand: `You are BrandMate on Step 1 (Brand).
-- The user completes their brand profile in the guided panel above. Do not discuss posts yet.
-- Do not call collectBrandProfile or createPost. Profile is handled by the panel.
+- The user completes their brand profile in the inline form at the top of the chat. Do not discuss posts yet.
+- Do not call collectBrandProfile or createPost. Profile is handled by the inline form.
 - Keep replies brief if the user asks questions about their brand setup.`,
   post: `You are BrandMate on Step 2 (Create post).
-- The user generates posts via the guided panel. Help them refine drafts in chat.
+- The user generates posts via the inline form in chat. Help them refine drafts conversationally.
 - Use submitHumanFeedback, storeLesson, and retryWithLesson to iterate on the draft.
 - Do not call approvePost until the user reaches Step 3 (Preview).
-- Do not call collectBrandProfile or collectPostRequest — forms are in the guided panel.`,
+- Do not call collectBrandProfile or collectPostRequest — forms are inline in chat.`,
   preview: `You are BrandMate on Step 3 (Preview).
-- The user reviews their draft and clicks "Preview in feed" in the panel above.
+- The user reviews their draft inline and clicks "Preview in feed".
 - Encourage them to preview in the LinkedIn feed. Do not start new generation.`,
 } as const;
 
@@ -57,6 +58,11 @@ export function useGenerativeUI() {
     [stage]
   );
 
+  useCopilotReadable({
+    description: "Current guided create flow step",
+    value: stage,
+  });
+
   useCopilotAdditionalInstructions({
     instructions,
     available: "enabled",
@@ -65,7 +71,7 @@ export function useGenerativeUI() {
   useHumanInTheLoop({
     name: "collectBrandProfile",
     description:
-      "Fallback: show in-chat form to collect brand profile (primary path is guided panel)",
+      "Fallback: show in-chat form to collect brand profile (primary path is inline form)",
     parameters: [],
     render: ({ status, respond }) => {
       if (status !== "executing" || !respond) return <></>;
@@ -86,7 +92,7 @@ export function useGenerativeUI() {
   useHumanInTheLoop({
     name: "collectPostRequest",
     description:
-      "Fallback: show in-chat form for post request (primary path is guided panel)",
+      "Fallback: show in-chat form for post request (primary path is inline form)",
     parameters: [],
     render: ({ status, respond }) => {
       if (status !== "executing" || !respond) return <></>;

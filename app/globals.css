@@ -14,12 +14,30 @@ body {
 
 .copilotKitChat {
   font-family: inherit;
+  height: 100%;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
 }
 
 .brandmate-layout {
   min-height: calc(100vh - 5rem);
 }
 
-.copilotKitChat {
-  min-height: calc(100vh - 8rem);
+.brandmate-guided-chat.copilotKitChat {
+  flex: 1;
+  min-height: 0;
+}
+
+.brandmate-guided-chat .copilotKitChatBody {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+}
+
+.brandmate-guided-chat .copilotKitMessages {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
 }
