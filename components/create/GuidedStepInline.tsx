@@ -4,6 +4,7 @@ import type { GeneratePostValues } from "@/components/forms/GeneratePostForm";
 import { GeneratePostForm } from "@/components/forms/GeneratePostForm";
 import { ProfileForm } from "@/components/forms/ProfileForm";
 import { ApprovePostCard } from "@/components/generative/ApprovePostCard";
+import { BrandProfileCard } from "@/components/generative/BrandProfileCard";
 import { PostCard } from "@/components/generative/PostCard";
 import { useBrandProfile } from "@/contexts/BrandProfileContext";
 import { useCreateFlow } from "@/contexts/CreateFlowContext";
@@ -75,8 +76,15 @@ export function GuidedStepInline() {
   }
 
   if (stage === "post") {
+    const profileComplete = Boolean(brandProfile.name && brandProfile.niche);
+
     return (
       <InlineCard>
+        {profileComplete && (
+          <div className="mb-4">
+            <BrandProfileCard profile={brandProfile} />
+          </div>
+        )}
         <GeneratePostForm
           hasProfile={Boolean(brandProfile.name && brandProfile.niche)}
           hasHandle={Boolean(brandProfile.handle?.trim())}

@@ -6,6 +6,8 @@ A LinkedIn personal brand coach with a **post gallery** home, **CopilotKit chat*
 
 **Observability:** [W&B Weave](https://docs.wandb.ai/weave) traces every agent step (generate → judge → memory → retry), logs scores and human feedback, and tracks cost/latency.
 
+**Ralph loop harness:** See [`ralph/README.md`](ralph/README.md) for iterative agent verification against product requirements (`./ralph/scripts/verify.sh --scope all`).
+
 ## Live demo
 
 **GitHub:** https://github.com/davidtingsu/brandmate

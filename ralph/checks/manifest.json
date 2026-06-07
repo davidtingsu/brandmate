@@ -1,0 +1,43 @@
+{
+  "scopes": {
+    "all": {
+      "lint": true,
+      "build": true,
+      "static": [
+        "guided-flow.sh",
+        "guided-inline-chat.sh",
+        "profile-form-collapse.sh",
+        "stage-chips.sh",
+        "copilotkit-route.sh",
+        "config-budget.sh"
+      ]
+    },
+    "create": {
+      "static": ["guided-flow.sh", "guided-inline-chat.sh"]
+    },
+    "profile": {
+      "static": ["profile-form-collapse.sh"]
+    },
+    "chips": {
+      "static": ["stage-chips.sh"]
+    },
+    "gallery": {
+      "static": ["guided-flow.sh"]
+    }
+  },
+  "requirements": {
+    "REQ-ENG-001": ["lint.sh"],
+    "REQ-ENG-002": ["build.sh"],
+    "REQ-ENG-003": ["config-budget.sh"],
+    "REQ-GALLERY-001": ["build.sh", "guided-flow.sh"],
+    "REQ-GALLERY-002": ["guided-flow.sh"],
+    "REQ-CREATE-010": ["profile-form-collapse.sh"],
+    "REQ-CREATE-011": ["profile-form-collapse.sh"],
+    "REQ-CREATE-012": ["stage-chips.sh"],
+    "REQ-CHIPS-001": ["stage-chips.sh"],
+    "REQ-CHIPS-002": ["stage-chips.sh"],
+    "REQ-CHIPS-003": ["stage-chips.sh"],
+    "REQ-CHIPS-004": ["stage-chips.sh"],
+    "REQ-CHIPS-005": ["stage-chips.sh"]
+  }
+}

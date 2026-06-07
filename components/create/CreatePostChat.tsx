@@ -1,6 +1,7 @@
 "use client";
 
 import { BrandMateRenderMessage } from "@/components/chat/BrandMateRenderMessage";
+import { ChipsOnlyInput } from "@/components/create/ChipsOnlyInput";
 import { CreateFlowStepper } from "@/components/create/CreateFlowStepper";
 import { CreatePostSkeleton } from "@/components/create/CreatePostSkeleton";
 import { GuidedChatMessages } from "@/components/create/GuidedChatMessages";
@@ -12,6 +13,7 @@ import { usePostActions } from "@/hooks/usePostActions";
 import { useChatSessionContext } from "@/contexts/ChatSessionContext";
 import { hasApprovedPost } from "@/lib/sessions/approved-post";
 import type { CreateFlowStage } from "@/lib/create-flow/stages";
+import { stageChipsToSuggestions } from "@/lib/create-flow/stage-chips";
 import { CopilotKit } from "@copilotkit/react-core";
 import { CopilotChat } from "@copilotkit/react-ui";
 import Image from "next/image";
@@ -49,6 +51,8 @@ function CreatePostChatInner({
   useGenerativeUI();
 
   const labels = STAGE_CHAT_LABELS[stage];
+  const suggestions = stageChipsToSuggestions(stage);
+  const Input = stage === "post" ? undefined : ChipsOnlyInput;
 
   return (
     <PostActionsProvider value={postActions}>
@@ -58,6 +62,8 @@ function CreatePostChatInner({
           className="brandmate-guided-chat flex min-h-0 flex-1 flex-col"
           Messages={GuidedChatMessages}
           RenderMessage={BrandMateRenderMessage}
+          Input={Input}
+          suggestions={suggestions}
           onSubmitMessage={() => void onChatStarted()}
           instructions={labels.initial}
           labels={{

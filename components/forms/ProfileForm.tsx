@@ -88,6 +88,20 @@ export function ProfileForm({
   const fieldClass =
     "w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:border-linkedin focus:outline-none focus:ring-1 focus:ring-linkedin";
 
+  if (saved) {
+    return (
+      <div
+        className={
+          compact
+            ? ""
+            : "rounded-xl border border-slate-200 bg-white p-5 shadow-sm"
+        }
+      >
+        <BrandProfileCard profile={saved} />
+      </div>
+    );
+  }
+
   return (
     <div
       className={
@@ -102,12 +116,6 @@ export function ProfileForm({
       <p className="mb-4 text-sm text-slate-600">
         Set your brand profile so every draft matches your voice and audience.
       </p>
-
-      {saved && (
-        <div className="mb-4">
-          <BrandProfileCard profile={saved} />
-        </div>
-      )}
 
       <form onSubmit={(e) => void handleSubmit(e)} className="space-y-3">
         <div className="flex flex-wrap items-center gap-4">
