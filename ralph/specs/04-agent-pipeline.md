@@ -26,9 +26,10 @@ Weave tracing.
 
 ## REQ-AGENT-005
 
-CopilotKit single-route mode.
+CopilotKit multi-route mode (supports GET `/threads`, POST `/agent/.../run`, etc.).
 
-- AC1: `mode: "single-route"` in copilotkit route
+- AC1: `mode: "multi-route"` in copilotkit route
+- AC2: `useSingleEndpoint={false}` on `<CopilotKit>` in create chat (REST transport; matches multi-route server)
 
 ## Verification
 

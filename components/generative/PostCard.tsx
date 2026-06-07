@@ -7,7 +7,6 @@ import type {
   BrandProfile,
   LinkedInPost,
   PostBrandingOptions,
-  SystemDiagram,
 } from "@/lib/types";
 import { useState } from "react";
 
@@ -16,7 +15,6 @@ interface PostCardProps {
   brandProfile: BrandProfile;
   topic?: string;
   branding?: PostBrandingOptions;
-  systemDiagram?: SystemDiagram;
   onCopy?: (text: string) => void;
 }
 
@@ -27,7 +25,6 @@ export function PostCard({
   brandProfile,
   topic,
   branding,
-  systemDiagram,
   onCopy,
 }: PostCardProps) {
   const [activeIndex, setActiveIndex] = useState(0);
@@ -42,6 +39,18 @@ export function PostCard({
     post.format === "carousel" &&
     slides.length > 0 &&
     slides.every((s) => s.imageUrl);
+
+  const downloadDiagram = async () => {
+    if (!post.image?.url) return;
+    const res = await fetch(post.image.url);
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "system-diagram.png";
+    a.click();
+    URL.revokeObjectURL(url);
+  };
 
   const downloadSlides = async () => {
     for (const slide of slides) {
@@ -111,11 +120,6 @@ export function PostCard({
               branding={branding}
             />
           )}
-          {post.format === "diagram" && systemDiagram && (
-            <p className="text-xs text-violet-700">
-              System diagram attached below for LinkedIn or export.
-            </p>
-          )}
         </div>
       ) : (
         <pre className="whitespace-pre-wrap rounded-lg bg-slate-50 p-3 text-sm leading-relaxed text-slate-700">
@@ -138,6 +142,15 @@ export function PostCard({
               className="rounded-md border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50"
             >
               Download slides
+            </button>
+          )}
+          {post.format === "diagram" && post.image?.url && (
+            <button
+              type="button"
+              onClick={() => void downloadDiagram()}
+              className="rounded-md border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50"
+            >
+              Download diagram
             </button>
           )}
           <button

@@ -280,7 +280,11 @@ export interface DiagramAgentInput {
   context?: string;
 }
 
-export interface DiagramAgentOutput {
+export interface DiagramAgentResult {
   diagram: SystemDiagram;
   agentId: "diagram_explainer";
+}
+
+export interface DiagramAgentOutput extends DiagramAgentResult {
+  imageUrl: string;
 }

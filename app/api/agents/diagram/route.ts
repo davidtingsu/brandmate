@@ -1,4 +1,5 @@
 import { generateSystemDiagram } from "@/lib/agents/diagram-agent";
+import { renderDiagramPng } from "@/lib/diagram/render-diagram";
 import { formatError } from "@/lib/weave/errors";
 import { NextRequest, NextResponse } from "next/server";
 
@@ -21,8 +22,9 @@ export async function POST(req: NextRequest) {
       concept: concept.trim(),
       context: context?.trim(),
     });
+    const imageUrl = await renderDiagramPng(result.diagram);
 
-    return NextResponse.json(result);
+    return NextResponse.json({ ...result, imageUrl });
   } catch (error) {
     console.error("[diagram agent]", error);
     return NextResponse.json({ error: formatError(error) }, { status: 500 });

@@ -5,6 +5,7 @@ cd "$ROOT"
 source "$(dirname "$0")/../lib/search.sh"
 
 search_q "portraitImageUrl" components/forms/GeneratePostForm.tsx
+search_q "portraitImageUrl" app/api/agents/orchestrate/route.ts
 test -f public/examples/carousel-portrait-example.jpg
 test -f lib/pipeline/carousel-render.ts
 test -f app/api/agents/carousel/render/route.ts

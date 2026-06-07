@@ -58,10 +58,17 @@ export function useDiagramAgent(options?: UseDiagramAgentOptions) {
           </div>
         );
       }
-      if (status !== "complete" || !result?.diagram) return <></>;
+      if (
+        status !== "complete" ||
+        !result?.diagram ||
+        !result.imageUrl
+      ) {
+        return <></>;
+      }
       return (
         <SystemDiagramCard
           diagram={result.diagram as SystemDiagram}
+          imageUrl={result.imageUrl as string}
           agentLabel={result.agentId as string}
         />
       );

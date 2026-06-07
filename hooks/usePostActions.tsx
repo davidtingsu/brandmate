@@ -68,6 +68,7 @@ export function usePostActions() {
   } | null>(null);
   const attemptCounterRef = useRef(1);
   const lastFormatRef = useRef<PostFormat>("text");
+  const lastPortraitImageUrlRef = useRef<string | undefined>(undefined);
 
   useDiagramAgent({
     getActiveFormat: () => lastFormatRef.current,
@@ -184,11 +185,11 @@ export function usePostActions() {
             brandProfile={brandProfile}
             topic={attempt.topic}
             branding={attempt.branding ?? lastBrandingRef.current}
-            systemDiagram={attempt.systemDiagram}
           />
-          {attempt.systemDiagram && (
+          {attempt.systemDiagram && attempt.variants[0]?.image?.url && (
             <SystemDiagramCard
               diagram={attempt.systemDiagram}
+              imageUrl={attempt.variants[0].image!.url}
               agentLabel="diagram_explainer"
             />
           )}
@@ -251,6 +252,15 @@ export function usePostActions() {
       const orchestrateFormat: PostFormat =
         postFormat === "diagram" ? "text" : postFormat;
 
+      const portraitImageUrl =
+        params.portraitImageUrl ??
+        (postFormat === "carousel" ? lastPortraitImageUrlRef.current : undefined) ??
+        profile.profileImageUrl;
+
+      if (portraitImageUrl && postFormat === "carousel") {
+        lastPortraitImageUrlRef.current = portraitImageUrl;
+      }
+
       const res = await fetch("/api/agents/orchestrate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -264,7 +274,7 @@ export function usePostActions() {
           imageStyle: params.imageStyle,
           slideCount: params.slideCount,
           imageUrl: params.imageUrl,
-          portraitImageUrl: params.portraitImageUrl,
+          portraitImageUrl,
           branding,
           scoreBefore: params.isRetry
             ? lastAttemptRef.current?.judgeScore
@@ -287,7 +297,7 @@ export function usePostActions() {
       ) {
         const renderedSlides = await streamRender({
           slides: attempt.variants[0].slides!,
-          portraitImageUrl: params.portraitImageUrl,
+          portraitImageUrl,
           topic: params.topic,
           brandProfile: profile,
           branding,
@@ -317,13 +327,23 @@ export function usePostActions() {
         }
         const diagramData = (await diagramRes.json()) as {
           diagram: PostAttempt["systemDiagram"];
+          imageUrl: string;
         };
         attempt = {
           ...attempt,
           systemDiagram: diagramData.diagram,
-          variants: attempt.variants.map((v) => ({
+          variants: attempt.variants.map((v, i) => ({
             ...v,
             format: "diagram" as PostFormat,
+            image:
+              i === 0 && diagramData.imageUrl
+                ? {
+                    url: diagramData.imageUrl,
+                    alt: diagramData.diagram?.title ?? "System diagram",
+                    aspectRatio: "1.91:1" as const,
+                    source: "generated" as const,
+                  }
+                : v.image,
           })),
         };
       }

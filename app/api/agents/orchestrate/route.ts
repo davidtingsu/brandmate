@@ -17,6 +17,7 @@ export async function POST(req: NextRequest) {
       includeImage,
       imageStyle,
       imageUrl,
+      portraitImageUrl,
       slideCount,
       scoreBefore,
       branding,
@@ -29,6 +30,7 @@ export async function POST(req: NextRequest) {
       includeImage?: boolean;
       imageStyle?: string;
       imageUrl?: string;
+      portraitImageUrl?: string;
       slideCount?: number;
       scoreBefore?: number;
       branding?: PostBrandingOptions;
@@ -50,6 +52,7 @@ export async function POST(req: NextRequest) {
       includeImage,
       imageStyle,
       imageUrl,
+      portraitImageUrl,
       slideCount,
       scoreBefore,
       branding,

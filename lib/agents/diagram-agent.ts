@@ -4,7 +4,7 @@ import {
 } from "@/lib/config";
 import { DIAGRAM_EXPLAINER_SYSTEM_PROMPT } from "@/lib/agents/diagram-explainer-agent";
 import { parseModelJson } from "@/lib/parse-model-json";
-import type { DiagramAgentInput, DiagramAgentOutput, SystemDiagram } from "@/lib/types";
+import type { DiagramAgentInput, DiagramAgentResult, SystemDiagram } from "@/lib/types";
 import { CAROUSEL_MODEL, getOpenAI } from "@/lib/weave/openai";
 
 const DIAGRAM_JSON_SCHEMA = `{
@@ -34,7 +34,7 @@ const DIAGRAM_JSON_SCHEMA = `{
 
 export async function generateSystemDiagram(
   input: DiagramAgentInput
-): Promise<DiagramAgentOutput> {
+): Promise<DiagramAgentResult> {
   const openai = getOpenAI();
   const tokenBudget = modelTokenBudget(CAROUSEL_MODEL, "diagram");
 

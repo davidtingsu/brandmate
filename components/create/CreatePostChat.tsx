@@ -161,7 +161,11 @@ function CreatePostChatContent() {
       </header>
 
       <div className="mx-auto flex w-full max-w-3xl min-h-0 flex-1 flex-col px-2 pb-2">
-        <CopilotKit runtimeUrl="/api/copilotkit" threadId={copilotThreadId}>
+        <CopilotKit
+          runtimeUrl="/api/copilotkit"
+          threadId={copilotThreadId}
+          useSingleEndpoint={false}
+        >
           <CreatePostChatInner onChatStarted={handleChatStarted} />
         </CopilotKit>
       </div>
