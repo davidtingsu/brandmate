@@ -1,13 +1,10 @@
 "use client";
 
 import {
-  inferCreateFlowStage,
-  type CreateFlowStage,
+  inferStudioStage,
+  type StudioFlowStage,
 } from "@/lib/create-flow/stages";
-import {
-  findBrandProfile,
-  findLatestPostAttempt,
-} from "@/lib/sessions/approved-post";
+import { findLatestPostAttempt } from "@/lib/sessions/approved-post";
 import type { ChatMessage, PostAttempt } from "@/lib/types";
 import {
   createContext,
@@ -19,9 +16,8 @@ import {
 } from "react";
 
 interface CreateFlowContextValue {
-  stage: CreateFlowStage;
-  setStage: (stage: CreateFlowStage) => void;
-  advanceToPost: () => void;
+  stage: StudioFlowStage;
+  setStage: (stage: StudioFlowStage) => void;
   advanceToPreview: () => void;
   lastAttempt: PostAttempt | null;
   lastWeaveTraceId: string | undefined;
@@ -35,7 +31,7 @@ interface CreateFlowContextValue {
 const CreateFlowContext = createContext<CreateFlowContextValue | null>(null);
 
 export function CreateFlowProvider({ children }: { children: ReactNode }) {
-  const [stage, setStage] = useState<CreateFlowStage>("brand");
+  const [stage, setStage] = useState<StudioFlowStage>("post");
   const [lastAttempt, setLastAttemptState] = useState<PostAttempt | null>(null);
   const [lastWeaveTraceId, setLastWeaveTraceId] = useState<string | undefined>(
     undefined
@@ -49,19 +45,16 @@ export function CreateFlowProvider({ children }: { children: ReactNode }) {
     []
   );
 
-  const advanceToPost = useCallback(() => setStage("post"), []);
   const advanceToPreview = useCallback(() => setStage("preview"), []);
 
   const hydrateFromMessages = useCallback((messages: ChatMessage[]) => {
-    const profile = findBrandProfile(messages);
     const latest = findLatestPostAttempt(messages);
     if (latest) {
       setLastAttemptState(latest.attempt);
       setLastWeaveTraceId(latest.weaveTraceId);
     }
     setStage(
-      inferCreateFlowStage({
-        hasProfile: Boolean(profile?.name && profile?.niche),
+      inferStudioStage({
         hasAttempt: Boolean(latest),
       })
     );
@@ -71,7 +64,6 @@ export function CreateFlowProvider({ children }: { children: ReactNode }) {
     () => ({
       stage,
       setStage,
-      advanceToPost,
       advanceToPreview,
       lastAttempt,
       lastWeaveTraceId,
@@ -80,7 +72,6 @@ export function CreateFlowProvider({ children }: { children: ReactNode }) {
     }),
     [
       stage,
-      advanceToPost,
       advanceToPreview,
       lastAttempt,
       lastWeaveTraceId,

@@ -1,9 +1,10 @@
 import { test, expect } from "@playwright/test";
-import { installApiStubs } from "../fixtures/stubs";
+import { installApiStubs, seedOnboardedState } from "../fixtures/stubs";
 
 test.describe("Carousel flow", () => {
   test.beforeEach(async ({ page }) => {
     await installApiStubs(page);
+    await seedOnboardedState(page);
   });
 
   test("carousel generate shows progress and post card with download", async ({
@@ -13,11 +14,6 @@ test.describe("Carousel flow", () => {
     await expect(page.getByTestId("create-flow-stepper")).toBeVisible({
       timeout: 30_000,
     });
-
-    const profileForm = page.getByTestId("profile-form");
-    await profileForm.getByPlaceholder("Your name").fill("E2E Tester");
-    await profileForm.getByPlaceholder(/AI engineering/i).fill("Engineering");
-    await profileForm.getByRole("button", { name: /create profile/i }).click();
 
     const genForm = page.getByTestId("generate-post-form");
     await expect(genForm).toBeVisible({ timeout: 15_000 });

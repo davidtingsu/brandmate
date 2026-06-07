@@ -1,6 +1,31 @@
 import type { Page } from "@playwright/test";
 import carouselAttempt from "./carousel-attempt.json";
 
+export const E2E_SAMPLE_PROFILE = {
+  name: "E2E Tester",
+  niche: "Product engineering",
+  audience: "Founders",
+  voice: "Direct and practical",
+};
+
+export async function seedOnboardedState(page: Page) {
+  const baseURL = process.env.PLAYWRIGHT_BASE_URL ?? "http://127.0.0.1:3005";
+  const { hostname } = new URL(baseURL);
+
+  await page.context().addCookies([
+    {
+      name: "brandmate_onboarded",
+      value: "1",
+      domain: hostname,
+      path: "/",
+    },
+  ]);
+
+  await page.addInitScript((profile) => {
+    localStorage.setItem("brandmate.profile", JSON.stringify(profile));
+  }, E2E_SAMPLE_PROFILE);
+}
+
 const TINY_PNG =
   "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==";
 

@@ -14,6 +14,7 @@
 - REQ-CAROUSEL-IMG-001 through REQ-CAROUSEL-IMG-009 — image carousel PNG render, portrait input, progress UI, premium CAROUSEL_MODEL
 - REQ-E2E-001 through REQ-E2E-003 — Playwright E2E in verify pipeline (stubbed carousel APIs)
 - REQ-MANUAL-001 through REQ-MANUAL-004 — manual checklist + skip-manual + manual-verify.sh
+- REQ-ONBOARD-001 through REQ-ONBOARD-004 — `/onboard` gate, middleware cookie, 2-step studio, localStorage profile
 
 ## Backlog
 

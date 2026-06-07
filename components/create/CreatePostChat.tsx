@@ -7,12 +7,13 @@ import { CreatePostSkeleton } from "@/components/create/CreatePostSkeleton";
 import { GuidedChatMessages } from "@/components/create/GuidedChatMessages";
 import { CreateFlowProvider, useCreateFlow } from "@/contexts/CreateFlowContext";
 import { PostActionsProvider } from "@/contexts/PostActionsContext";
+import { useBrandProfile } from "@/contexts/BrandProfileContext";
 import { useSessionLoader } from "@/hooks/useSessionLoader";
 import { useGenerativeUI } from "@/hooks/useGenerativeUI";
 import { usePostActions } from "@/hooks/usePostActions";
 import { useChatSessionContext } from "@/contexts/ChatSessionContext";
 import { hasApprovedPost } from "@/lib/sessions/approved-post";
-import type { CreateFlowStage } from "@/lib/create-flow/stages";
+import type { StudioFlowStage } from "@/lib/create-flow/stages";
 import { stageChipsToSuggestions } from "@/lib/create-flow/stage-chips";
 import { CopilotKit } from "@copilotkit/react-core";
 import { CopilotChat } from "@copilotkit/react-ui";
@@ -21,14 +22,9 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 
 const STAGE_CHAT_LABELS: Record<
-  CreateFlowStage,
+  StudioFlowStage,
   { initial: string; placeholder: string }
 > = {
-  brand: {
-    initial:
-      "Welcome! Fill in your brand profile below — ask me if you need help with niche, voice, or audience.",
-    placeholder: "Ask about your brand setup…",
-  },
   post: {
     initial:
       "Use the form below to generate your post. I can help you refine the draft, explain feedback, or retry with lessons.",
@@ -52,7 +48,7 @@ function CreatePostChatInner({
 
   const labels = STAGE_CHAT_LABELS[stage];
   const suggestions = stageChipsToSuggestions(stage);
-  const Input = stage === "post" ? undefined : ChipsOnlyInput;
+  const Input = stage === "preview" ? ChipsOnlyInput : undefined;
 
   return (
     <PostActionsProvider value={postActions}>
@@ -81,6 +77,7 @@ function CreatePostChatContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const sessionParam = searchParams.get("session");
+  const { hasProfile } = useBrandProfile();
   const { copilotThreadId, loading: sessionsLoading } = useChatSessionContext();
   const { loadSession, ensureSession, loadSessions } = useSessionLoader();
   const { hydrateFromMessages } = useCreateFlow();
@@ -92,6 +89,12 @@ function CreatePostChatContent() {
       router.replace(`/create?session=${sessionId}`, { scroll: false });
     }
   }, [ensureSession, router, sessionParam]);
+
+  useEffect(() => {
+    if (!hasProfile) {
+      router.replace("/onboard?return=/create");
+    }
+  }, [hasProfile, router]);
 
   useEffect(() => {
     let cancelled = false;
@@ -128,7 +131,7 @@ function CreatePostChatContent() {
     router,
   ]);
 
-  if (!ready) {
+  if (!hasProfile || !ready) {
     return <CreatePostSkeleton />;
   }
 
@@ -145,7 +148,7 @@ function CreatePostChatContent() {
           />
           <div>
             <h1 className="text-sm font-semibold text-slate-900">New post</h1>
-            <p className="text-xs text-slate-500">Guided create flow</p>
+            <p className="text-xs text-slate-500">Post studio</p>
           </div>
         </div>
         <button

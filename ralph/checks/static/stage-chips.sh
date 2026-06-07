@@ -9,4 +9,4 @@ search_q "ChipsOnlyInput" components/create/
 search_q "CreateFlowStepper" components/create/CreatePostChat.tsx
 search_q "suggestions" components/create/CreatePostChat.tsx
 search_q "STAGE_CHIPS|stage-chips|getStageChips" lib/create-flow/ components/create/
-search_q 'stage === "post"' components/create/CreatePostChat.tsx
+search_q 'stage === "preview"' components/create/CreatePostChat.tsx

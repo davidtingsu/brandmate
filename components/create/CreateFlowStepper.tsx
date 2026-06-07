@@ -2,13 +2,13 @@
 
 import { useCreateFlow } from "@/contexts/CreateFlowContext";
 import {
-  STAGE_LABELS,
-  STAGE_ORDER,
-  type CreateFlowStage,
+  STUDIO_STAGE_LABELS,
+  STUDIO_STAGE_ORDER,
+  type StudioFlowStage,
 } from "@/lib/create-flow/stages";
 
-function stepIndex(stage: CreateFlowStage): number {
-  return STAGE_ORDER.indexOf(stage);
+function stepIndex(stage: StudioFlowStage): number {
+  return STUDIO_STAGE_ORDER.indexOf(stage);
 }
 
 export function CreateFlowStepper() {
@@ -21,10 +21,10 @@ export function CreateFlowStepper() {
       aria-label="Create post steps"
       className="mb-4 flex items-center justify-center gap-2 border-b border-slate-100 pb-4 pt-2"
     >
-      {STAGE_ORDER.map((step, index) => {
+      {STUDIO_STAGE_ORDER.map((step, index) => {
         const done = index < current;
         const active = index === current;
-        const label = STAGE_LABELS[step];
+        const label = STUDIO_STAGE_LABELS[step];
 
         return (
           <div key={step} className="flex items-center gap-2">

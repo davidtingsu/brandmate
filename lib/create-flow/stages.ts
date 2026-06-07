@@ -1,19 +1,25 @@
-export type CreateFlowStage = "brand" | "post" | "preview";
+export type StudioFlowStage = "post" | "preview";
 
-export function inferCreateFlowStage(input: {
-  hasProfile: boolean;
+/** @deprecated Use StudioFlowStage — kept as alias for gradual migration */
+export type CreateFlowStage = StudioFlowStage;
+
+export function inferStudioStage(input: {
   hasAttempt: boolean;
-  forcedStage?: CreateFlowStage;
-}): CreateFlowStage {
+  forcedStage?: StudioFlowStage;
+}): StudioFlowStage {
   if (input.forcedStage) return input.forcedStage;
-  if (!input.hasProfile) return "brand";
   return "post";
 }
 
-export const STAGE_LABELS: Record<CreateFlowStage, string> = {
-  brand: "Brand",
+export const STUDIO_STAGE_LABELS: Record<StudioFlowStage, string> = {
   post: "Create post",
   preview: "Preview",
 };
 
-export const STAGE_ORDER: CreateFlowStage[] = ["brand", "post", "preview"];
+export const STUDIO_STAGE_ORDER: StudioFlowStage[] = ["post", "preview"];
+
+/** @deprecated Use STUDIO_STAGE_ORDER */
+export const STAGE_LABELS = STUDIO_STAGE_LABELS;
+
+/** @deprecated Use STUDIO_STAGE_ORDER */
+export const STAGE_ORDER = STUDIO_STAGE_ORDER;

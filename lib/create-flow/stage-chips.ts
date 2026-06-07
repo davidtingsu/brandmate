@@ -1,4 +1,4 @@
-import type { CreateFlowStage } from "@/lib/create-flow/stages";
+import type { StudioFlowStage } from "@/lib/create-flow/stages";
 
 export interface StageChip {
   id: string;
@@ -6,24 +6,7 @@ export interface StageChip {
   message: string;
 }
 
-export const STAGE_CHIPS: Record<CreateFlowStage, StageChip[]> = {
-  brand: [
-    {
-      id: "niche",
-      label: "Help with niche",
-      message: "Help me define my niche for LinkedIn content.",
-    },
-    {
-      id: "voice",
-      label: "Help with voice",
-      message: "Help me describe my voice and tone for posts.",
-    },
-    {
-      id: "audience",
-      label: "Who is my audience?",
-      message: "Who should I target as my LinkedIn audience?",
-    },
-  ],
+export const STAGE_CHIPS: Record<StudioFlowStage, StageChip[]> = {
   post: [
     {
       id: "score",
@@ -65,12 +48,12 @@ export interface StageSuggestion {
   message: string;
 }
 
-export function getStageChips(stage: CreateFlowStage): StageChip[] {
+export function getStageChips(stage: StudioFlowStage): StageChip[] {
   return STAGE_CHIPS[stage];
 }
 
 export function stageChipsToSuggestions(
-  stage: CreateFlowStage
+  stage: StudioFlowStage
 ): StageSuggestion[] {
   return STAGE_CHIPS[stage].map((chip) => ({
     title: chip.label,

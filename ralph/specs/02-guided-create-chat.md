@@ -2,9 +2,9 @@
 
 ## REQ-CREATE-001
 
-Stepper shows Brand → Create post → Preview.
+Stepper shows Create post → Preview (brand onboarding moved to `/onboard`).
 
-- AC1: `CreateFlowStepper` + `STAGE_ORDER` in `lib/create-flow/stages.ts`
+- AC1: `CreateFlowStepper` + `STUDIO_STAGE_ORDER` in `lib/create-flow/stages.ts`
 
 ## REQ-CREATE-002
 
@@ -14,9 +14,9 @@ Forms inline in chat via `GuidedChatMessages` + `GuidedStepInline`.
 
 ## REQ-CREATE-003
 
-Full-height chat; text input on post step only; brand/preview use chips-only footer.
+Full-height chat; text input on post step only; preview uses chips-only footer.
 
-- AC1: `ChipsOnlyInput` wired for brand/preview
+- AC1: `ChipsOnlyInput` wired for preview
 - AC2: Default input on post step
 
 ## REQ-CREATE-012

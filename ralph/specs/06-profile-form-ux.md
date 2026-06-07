@@ -11,8 +11,8 @@ Profile form disappears after submit.
 
 BrandProfileCard then GeneratePostForm.
 
-- AC1: `advanceToPost()` after profile persist
-- AC2: Step 2 shows `BrandProfileCard` above `GeneratePostForm`
+- AC1: Profile onboarding at `/onboard`; studio post step shows `BrandProfileCard` above `GeneratePostForm`
+- AC2: `BrandProfileCard` above `GeneratePostForm` on studio post step
 - AC3: Continue to preview and attempt cards remain on step 2
 
 ## Verification

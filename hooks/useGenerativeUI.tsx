@@ -1,60 +1,33 @@
 "use client";
 
-import { ProfileForm } from "@/components/forms/ProfileForm";
 import { GeneratePostForm } from "@/components/forms/GeneratePostForm";
 import { FormatPickerCard } from "@/components/generative/FormatPickerCard";
 import { useBrandProfile } from "@/contexts/BrandProfileContext";
 import { useCreateFlow } from "@/contexts/CreateFlowContext";
-import { useChatSessionContext } from "@/contexts/ChatSessionContext";
-import { useSessionLoader } from "@/hooks/useSessionLoader";
-import type { BrandProfile } from "@/lib/types";
 import {
   useCopilotAdditionalInstructions,
   useCopilotReadable,
   useHumanInTheLoop,
 } from "@copilotkit/react-core";
-import { useCallback, useMemo } from "react";
+import { useMemo } from "react";
 
 const STAGE_INSTRUCTIONS = {
-  brand: `You are BrandMate on Step 1 (Brand).
-- The user completes their brand profile in the inline form at the top of the chat. Do not discuss posts yet.
-- Chips below the chat are the primary way to ask coaching questions on this step (no free-form text input).
-- Do not call collectBrandProfile or createPost. Profile is handled by the inline form.
-- Keep replies brief if the user asks questions about their brand setup.`,
-  post: `You are BrandMate on Step 2 (Create post).
+  post: `You are BrandMate in the post studio (Create post step).
 - The user generates posts via the inline form in chat. Help them refine drafts conversationally.
 - Chips and free-form chat are both available. Chips may ask you to explain scores, retry with lessons, or refine tone.
 - Use submitHumanFeedback, storeLesson, and retryWithLesson to iterate on the draft.
-- Do not call approvePost until the user reaches Step 3 (Preview).
-- Do not call collectBrandProfile or collectPostRequest — forms are inline in chat.`,
-  preview: `You are BrandMate on Step 3 (Preview).
+- Do not call approvePost until the user reaches Preview.
+- Do not call collectPostRequest — the form is inline in chat.
+- Profile onboarding is complete; do not ask for brand profile setup.`,
+  preview: `You are BrandMate on Preview.
 - The user reviews their draft inline and clicks "Preview in feed".
 - Chips below the chat are the primary way to ask coaching questions on this step (no free-form text input).
 - Encourage them to preview in the LinkedIn feed. Do not start new generation.`,
 } as const;
 
 export function useGenerativeUI() {
-  const { brandProfile, setBrandProfile } = useBrandProfile();
+  const { brandProfile } = useBrandProfile();
   const { stage } = useCreateFlow();
-  const { sessionsEnabled } = useChatSessionContext();
-  const { ensureSession } = useSessionLoader();
-
-  const persistProfile = useCallback(
-    async (profile: BrandProfile) => {
-      const sessionId = await ensureSession();
-      if (!sessionId || !sessionsEnabled) return;
-      await fetch(`/api/sessions/${sessionId}/messages`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          role: "assistant",
-          content: null,
-          metadata: { type: "brand_profile", profile },
-        }),
-      });
-    },
-    [ensureSession, sessionsEnabled]
-  );
 
   const instructions = useMemo(
     () => STAGE_INSTRUCTIONS[stage],
@@ -69,27 +42,6 @@ export function useGenerativeUI() {
   useCopilotAdditionalInstructions({
     instructions,
     available: "enabled",
-  });
-
-  useHumanInTheLoop({
-    name: "collectBrandProfile",
-    description:
-      "Fallback: show in-chat form to collect brand profile (primary path is inline form)",
-    parameters: [],
-    render: ({ status, respond }) => {
-      if (status !== "executing" || !respond) return <></>;
-      return (
-        <ProfileForm
-          compact
-          initial={brandProfile}
-          onSubmit={async (profile) => {
-            setBrandProfile(profile);
-            await persistProfile(profile);
-            respond(profile);
-          }}
-        />
-      );
-    },
   });
 
   useHumanInTheLoop({

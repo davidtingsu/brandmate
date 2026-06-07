@@ -3,7 +3,6 @@
 import { CarouselRenderProgress } from "@/components/create/CarouselRenderProgress";
 import type { GeneratePostValues } from "@/components/forms/GeneratePostForm";
 import { GeneratePostForm } from "@/components/forms/GeneratePostForm";
-import { ProfileForm } from "@/components/forms/ProfileForm";
 import { ApprovePostCard } from "@/components/generative/ApprovePostCard";
 import { BrandProfileCard } from "@/components/generative/BrandProfileCard";
 import { PostCard } from "@/components/generative/PostCard";
@@ -11,7 +10,6 @@ import { useBrandProfile } from "@/contexts/BrandProfileContext";
 import { useCreateFlow } from "@/contexts/CreateFlowContext";
 import { usePostActionsContext } from "@/contexts/PostActionsContext";
 import { useSessionLoader } from "@/hooks/useSessionLoader";
-import type { BrandProfile } from "@/lib/types";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
 
@@ -24,17 +22,15 @@ function InlineCard({ children }: { children: React.ReactNode }) {
 }
 
 export function GuidedStepInline() {
-  const { brandProfile, setBrandProfile } = useBrandProfile();
+  const { brandProfile } = useBrandProfile();
   const {
     stage,
-    advanceToPost,
     advanceToPreview,
     lastAttempt,
     lastWeaveTraceId,
   } = useCreateFlow();
   const {
     generatePost,
-    persistProfile,
     renderAttemptCards,
     handlePreviewInFeed,
     carouselRenderState,
@@ -52,13 +48,6 @@ export function GuidedStepInline() {
     }
   };
 
-  const handleProfileSubmit = async (profile: BrandProfile) => {
-    setBrandProfile(profile);
-    await persistProfile(profile);
-    await syncSessionUrl();
-    advanceToPost();
-  };
-
   const handleGenerateSubmit = async (values: GeneratePostValues) => {
     setGenerating(true);
     try {
@@ -69,17 +58,9 @@ export function GuidedStepInline() {
     }
   };
 
-  if (stage === "brand") {
-    return (
-      <InlineCard>
-        <ProfileForm compact initial={brandProfile} onSubmit={handleProfileSubmit} />
-      </InlineCard>
-    );
-  }
+  const profileComplete = Boolean(brandProfile.name && brandProfile.niche);
 
   if (stage === "post") {
-    const profileComplete = Boolean(brandProfile.name && brandProfile.niche);
-
     return (
       <InlineCard>
         {profileComplete && (
@@ -88,7 +69,7 @@ export function GuidedStepInline() {
           </div>
         )}
         <GeneratePostForm
-          hasProfile={Boolean(brandProfile.name && brandProfile.niche)}
+          hasProfile={profileComplete}
           hasHandle={Boolean(brandProfile.handle?.trim())}
           hasProfileImage={Boolean(brandProfile.profileImageUrl)}
           loading={generating}
