@@ -11,6 +11,7 @@ export async function renderSlidePng(input: {
   topic?: string;
   brandProfile?: BrandProfile;
   branding?: PostBrandingOptions;
+  userFeedback?: string;
   totalSlides: number;
 }): Promise<string> {
   return generateCarouselSlideImage(input);

@@ -63,6 +63,7 @@ export async function renderCarouselSlides(
         topic: input.topic,
         brandProfile: input.brandProfile,
         branding: input.branding,
+        userFeedback: input.userFeedback,
         totalSlides: total,
       });
 

@@ -92,6 +92,7 @@ function CreatePostChatContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const sessionParam = searchParams.get("session");
+  const studioMode = searchParams.get("studio") === "1";
   const { hasProfile } = useBrandProfile();
   const { copilotThreadId, sessionsLoadedOnce } = useChatSessionContext();
   const { loadSession, ensureSession, loadSessions } = useSessionLoader();
@@ -132,7 +133,7 @@ function CreatePostChatContent() {
 
       if (sessionParam) {
         const messages = await loadSession(sessionParam);
-        if (hasApprovedPost(messages)) {
+        if (hasApprovedPost(messages) && !studioMode) {
           router.replace(`/preview/${sessionParam}`);
           return;
         }
@@ -150,6 +151,7 @@ function CreatePostChatContent() {
     };
   }, [
     sessionParam,
+    studioMode,
     loadSession,
     loadSessions,
     sessionsLoadedOnce,

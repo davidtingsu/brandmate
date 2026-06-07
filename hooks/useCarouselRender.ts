@@ -37,6 +37,7 @@ export function useCarouselRender() {
       topic?: string;
       brandProfile?: BrandProfile;
       branding?: PostBrandingOptions;
+      userFeedback?: string;
       onSlidesUpdate?: (slides: CarouselSlide[]) => void;
     }): Promise<CarouselSlide[]> => {
       const total = input.slides.length;

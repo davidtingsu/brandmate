@@ -213,6 +213,7 @@ export interface CarouselRenderInput {
   topic?: string;
   brandProfile?: BrandProfile;
   branding?: PostBrandingOptions;
+  userFeedback?: string;
 }
 
 export interface CarouselRenderProgressEvent {

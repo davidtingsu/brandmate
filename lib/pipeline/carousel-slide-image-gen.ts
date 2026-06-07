@@ -1,5 +1,6 @@
 import { usesPortraitBackground } from "@/lib/carousel/templates";
 import { CAROUSEL_IMAGE_MODEL, SUPABASE_STORAGE_BUCKET } from "@/lib/config";
+import { buildRevisionPromptBlocks } from "@/lib/pipeline/revision-prompt";
 import { createServerClient, isSupabaseConfigured } from "@/lib/supabase/client";
 import type {
   BrandProfile,
@@ -86,6 +87,15 @@ ${handleNote}
 Portrait LinkedIn carousel slide (4:5). Legible text only — no paragraph blocks outside the designed areas.`;
 }
 
+function feedbackBlock(userFeedback?: string): string {
+  const revision = buildRevisionPromptBlocks({ userFeedback });
+  if (!revision) return "";
+  return `${revision}\n\nOn any conflict between user feedback and Image 1 styling, follow the user.\n\n`;
+}
+
+const LOOSE_REF_STYLE =
+  "Image 1 is a loose style reference — borrow general LinkedIn carousel feel (hand-drawn typography, doodle accents, layout density), not exact colors, overlays, background, or decorative details.";
+
 export function buildSlideImagePrompt(input: {
   slide: CarouselSlide;
   topic?: string;
@@ -95,15 +105,17 @@ export function buildSlideImagePrompt(input: {
   refIndex: number;
   includesPortrait: boolean;
   compositingMode?: boolean;
+  userFeedback?: string;
 }): string {
   const content = slideContentBlock(input);
+  const revision = feedbackBlock(input.userFeedback);
 
   if (input.includesPortrait && input.compositingMode) {
-    return `Image 1 is a LinkedIn carousel slide layout and style reference.
+    return `${revision}Image 1 is a loose LinkedIn carousel slide layout reference.
 Image 2 is the author's portrait photo.
 
 ${PORTRAIT_COMPOSITING_LEAD}'s portrait area (same position, scale, and framing as the person in Image 1).
-Use Image 1's lighting, composition, background, hand-drawn typography, and doodle style.
+${LOOSE_REF_STYLE} User feedback governs overlays, overlay text, background, and decorative style when provided.
 
 STRICT — preserve the person's exact facial identity from Image 2: eyes, nose, mouth, jawline, skin tone, hair, and expression. Do not redraw, beautify, or alter the face.
 
@@ -112,9 +124,7 @@ Create a NEW slide for a different topic. Do NOT copy Image 1's original topic t
 ${content}`;
   }
 
-  return `Image 1 is a LinkedIn carousel slide reference. Match its visual language exactly:
-hand-drawn typography, doodle accents (stars, arrows, sparkles), colored boxes/borders,
-grid-paper or scenic backgrounds, layout density, and overall composition.
+  return `${revision}${LOOSE_REF_STYLE}
 
 Create a NEW slide for a different topic. Do NOT copy the reference slide's text or topic.
 
@@ -247,6 +257,7 @@ export async function generateCarouselSlideImage(input: {
   topic?: string;
   brandProfile?: BrandProfile;
   branding?: PostBrandingOptions;
+  userFeedback?: string;
   totalSlides: number;
 }): Promise<string> {
   const refIndex = getCarouselReferenceIndex(
@@ -264,7 +275,12 @@ export async function generateCarouselSlideImage(input: {
     includesPortrait && Boolean(input.portraitImageUrl);
 
   const prompt = buildSlideImagePrompt({
-    ...input,
+    slide: input.slide,
+    topic: input.topic,
+    brandProfile: input.brandProfile,
+    branding: input.branding,
+    totalSlides: input.totalSlides,
+    userFeedback: input.userFeedback,
     refIndex,
     includesPortrait,
     compositingMode,

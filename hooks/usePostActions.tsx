@@ -362,6 +362,7 @@ export function usePostActions() {
           topic: params.topic,
           brandProfile: profile,
           branding,
+          userFeedback: params.userFeedback,
           onSlidesUpdate: (slides) => {
             const updated = {
               ...attempt,

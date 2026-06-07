@@ -153,6 +153,7 @@ export default function PreviewPage() {
       branding={branding}
       lessons={lessons}
       similarPosts={similarPosts}
+      sessionId={sessionId}
     />
   );
 }

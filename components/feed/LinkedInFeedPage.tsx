@@ -19,6 +19,7 @@ interface LinkedInFeedPageProps {
   branding?: PostBrandingOptions;
   lessons?: Lesson[];
   similarPosts?: SimilarPost[];
+  sessionId?: string;
 }
 
 export function LinkedInFeedPage({
@@ -28,6 +29,7 @@ export function LinkedInFeedPage({
   branding,
   lessons = [],
   similarPosts = [],
+  sessionId,
 }: LinkedInFeedPageProps) {
   const router = useRouter();
 
@@ -36,13 +38,26 @@ export function LinkedInFeedPage({
       <header className="sticky top-0 z-10 border-b border-slate-200 bg-white px-4 py-3">
         <div className="mx-auto flex max-w-[555px] items-center justify-between">
           <p className="text-sm font-semibold text-slate-800">LinkedIn feed preview</p>
-          <button
-            type="button"
-            onClick={() => router.push("/")}
-            className="text-sm font-medium text-linkedin hover:text-blue-700"
-          >
-            Exit preview
-          </button>
+          <div className="flex items-center gap-4">
+            {sessionId ? (
+              <button
+                type="button"
+                onClick={() =>
+                  router.push(`/create?session=${sessionId}&studio=1`)
+                }
+                className="text-sm font-medium text-linkedin hover:text-blue-700"
+              >
+                Back to studio
+              </button>
+            ) : null}
+            <button
+              type="button"
+              onClick={() => router.push("/")}
+              className="text-sm font-medium text-linkedin hover:text-blue-700"
+            >
+              Exit preview
+            </button>
+          </div>
         </div>
       </header>
 
