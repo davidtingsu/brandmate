@@ -16,12 +16,13 @@
         "onboarding-gate.sh",
         "diagram-image.sh",
         "gallery-delete.sh",
-        "gallery-preview.sh"
+        "gallery-preview.sh",
+        "generation-loading.sh"
       ],
       "e2e": true
     },
     "create": {
-      "static": ["guided-flow.sh", "guided-inline-chat.sh"]
+      "static": ["guided-flow.sh", "guided-inline-chat.sh", "generation-loading.sh"]
     },
     "profile": {
       "static": ["profile-form-collapse.sh", "onboarding-gate.sh"]
@@ -54,6 +55,7 @@
     "REQ-CREATE-010": ["profile-form-collapse.sh"],
     "REQ-CREATE-011": ["profile-form-collapse.sh"],
     "REQ-CREATE-012": ["stage-chips.sh"],
+    "REQ-CREATE-013": ["generation-loading.sh"],
     "REQ-CHIPS-001": ["stage-chips.sh"],
     "REQ-CHIPS-002": ["stage-chips.sh"],
     "REQ-CHIPS-003": ["stage-chips.sh"],

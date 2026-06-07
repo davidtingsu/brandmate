@@ -1,6 +1,6 @@
 "use client";
 
-import { CarouselRenderProgress } from "@/components/create/CarouselRenderProgress";
+import { PostGeneratingPreview } from "@/components/create/PostGeneratingPreview";
 import { ApprovePostCard } from "@/components/generative/ApprovePostCard";
 import { AttemptCard } from "@/components/generative/AttemptCard";
 import { BrandProfileCard } from "@/components/generative/BrandProfileCard";
@@ -22,12 +22,14 @@ import type {
   PostFormat,
   PostType,
 } from "@/lib/types";
+import { isAttemptMediaComplete } from "@/lib/attempt-media-complete";
 import { updatePostTitle } from "@/lib/brandmate/actions";
+import type { GenerationPreview } from "@/lib/generation-estimates";
 import { summarizePostTitle } from "@/lib/sessions/summarize-title";
 import { useCarouselRender } from "@/hooks/useCarouselRender";
 import { useCopilotAction, useCopilotReadable } from "@copilotkit/react-core";
 import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 export interface GeneratePostParams {
   topic: string;
@@ -97,6 +99,8 @@ export function usePostActions() {
   const lastFormatRef = useRef<PostFormat>("text");
   const lastPortraitImageUrlRef = useRef<string | undefined>(undefined);
   const lastGenerateParamsRef = useRef<GeneratePostParams | null>(null);
+  const [generationPreview, setGenerationPreview] =
+    useState<GenerationPreview | null>(null);
 
   useDiagramAgent({
     getActiveFormat: () => lastFormatRef.current,
@@ -221,26 +225,30 @@ export function usePostActions() {
               agentLabel="diagram_explainer"
             />
           )}
-          <JudgeBreakdown
-            breakdown={attempt.breakdown}
-            score={attempt.judgeScore}
-          />
-          <AttemptCard attempt={attempt} weaveProject={weaveTraceId} />
-          {showFeedback && (
-            <HumanFeedbackButtons
-              onSelect={async (feedback) => {
-                await fetch("/api/agents/memory", {
-                  method: "POST",
-                  headers: { "Content-Type": "application/json" },
-                  body: JSON.stringify({
-                    action: "feedback",
-                    feedbackType: feedback,
-                    scoreBefore: attempt.judgeScore,
-                    traceId: attempt.weaveTraceId,
-                  }),
-                });
-              }}
-            />
+          {isAttemptMediaComplete(attempt) && (
+            <>
+              <JudgeBreakdown
+                breakdown={attempt.breakdown}
+                score={attempt.judgeScore}
+              />
+              <AttemptCard attempt={attempt} weaveProject={weaveTraceId} />
+              {showFeedback && (
+                <HumanFeedbackButtons
+                  onSelect={async (feedback) => {
+                    await fetch("/api/agents/memory", {
+                      method: "POST",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({
+                        action: "feedback",
+                        feedbackType: feedback,
+                        scoreBefore: attempt.judgeScore,
+                        traceId: attempt.weaveTraceId,
+                      }),
+                    });
+                  }}
+                />
+              )}
+            </>
           )}
           {showPreviewCta && (
             <ApprovePostCard onPreview={() => void handlePreviewInFeed()} />
@@ -251,11 +259,33 @@ export function usePostActions() {
     [brandProfile, handlePreviewInFeed]
   );
 
+  const renderGenerationPreview = useCallback(() => {
+    if (!generationPreview?.active) return null;
+    return (
+      <PostGeneratingPreview
+        preview={generationPreview}
+        brandProfile={brandProfile}
+        lastAttempt={lastAttemptRef.current ?? lastAttempt}
+        branding={lastBrandingRef.current}
+      />
+    );
+  }, [brandProfile, generationPreview, lastAttempt]);
+
   const runOrchestrate = useCallback(
     async (params: GeneratePostParams & { isRetry?: boolean }) => {
       const profile = ensureProfile();
       const postFormat = (params.format as PostFormat) ?? "text";
       lastFormatRef.current = postFormat;
+
+      setGenerationPreview({
+        active: true,
+        topic: params.topic,
+        format: postFormat,
+        includeImage: Boolean(params.includeImage),
+        slideCount: params.slideCount ?? 7,
+        startedAt: Date.now(),
+        phase: "orchestrating",
+      });
 
       const branding: PostBrandingOptions | undefined =
         params.branding ??
@@ -289,6 +319,7 @@ export function usePostActions() {
         lastPortraitImageUrlRef.current = portraitImageUrl;
       }
 
+      try {
       const res = await fetch("/api/agents/orchestrate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -321,10 +352,16 @@ export function usePostActions() {
         branding: branding ?? (data.attempt as PostAttempt).branding,
       };
 
+      lastAttemptRef.current = attempt;
+      setLastAttempt(attempt, data.weaveTraceId as string | undefined);
+
       if (
         postFormat === "carousel" &&
         attempt.variants[0]?.slides?.length
       ) {
+        setGenerationPreview((prev) =>
+          prev ? { ...prev, phase: "rendering" } : prev
+        );
         const pendingSlides = attempt.variants[0].slides!.map((slide) => ({
           ...slide,
           imageUrl: undefined,
@@ -366,6 +403,9 @@ export function usePostActions() {
       }
 
       if (postFormat === "diagram") {
+        setGenerationPreview((prev) =>
+          prev ? { ...prev, phase: "diagram" } : prev
+        );
         const diagramRes = await fetch("/api/agents/diagram", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -441,6 +481,9 @@ export function usePostActions() {
       };
 
       return { ...data, attempt, weaveTraceId: data.weaveTraceId as string };
+      } finally {
+        setGenerationPreview(null);
+      }
     },
     [
       ensureProfile,
@@ -576,35 +619,10 @@ export function usePostActions() {
     },
     render: ({ status, result }) => {
       if (status === "inProgress") {
-        const fmt = lastFormatRef.current;
-        const renderingAttempt = lastAttemptRef.current;
-        if (
-          fmt === "carousel" &&
-          carouselRenderState.phase === "rendering" &&
-          renderingAttempt?.variants[0]?.slides?.length
-        ) {
-          return (
-            <div className="my-2 space-y-3">
-              <CarouselRenderProgress state={carouselRenderState} />
-              <PostCard
-                variants={renderingAttempt.variants}
-                brandProfile={brandProfile}
-                topic={renderingAttempt.topic}
-                branding={
-                  renderingAttempt.branding ?? lastBrandingRef.current
-                }
-              />
-            </div>
-          );
-        }
+        const preview = renderGenerationPreview();
+        if (preview) return <div className="my-2">{preview}</div>;
         return (
-          <div className="my-2 text-sm text-slate-500">
-            {fmt === "carousel"
-              ? "Generating carousel, searching memories, judging draft..."
-              : fmt === "diagram"
-                ? "Generating post copy and system diagram..."
-                : "Generating post, searching memories, judging draft..."}
-          </div>
+          <div className="my-2 text-sm text-slate-500">Generating post…</div>
         );
       }
       if (status !== "complete" || !result?.attempt) return <></>;
@@ -790,6 +808,8 @@ export function usePostActions() {
     },
     render: ({ status, result }) => {
       if (status === "inProgress") {
+        const preview = renderGenerationPreview();
+        if (preview) return <div className="my-2">{preview}</div>;
         return (
           <div className="text-sm text-slate-500">
             Retrying with judge feedback...
@@ -832,6 +852,8 @@ export function usePostActions() {
     },
     render: ({ status, result }) => {
       if (status === "inProgress") {
+        const preview = renderGenerationPreview();
+        if (preview) return <div className="my-2">{preview}</div>;
         return (
           <div className="text-sm text-slate-500">Regenerating post...</div>
         );
@@ -875,5 +897,6 @@ export function usePostActions() {
     renderAttemptCards,
     handlePreviewInFeed,
     carouselRenderState,
+    generationPreview,
   };
 }

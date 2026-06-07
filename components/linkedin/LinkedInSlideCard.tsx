@@ -10,6 +10,8 @@ interface LinkedInSlideCardProps {
   totalSlides: number;
   profile?: BrandProfile;
   branding?: PostBrandingOptions;
+  imageProgress?: number;
+  timeRemaining?: string;
 }
 
 export function LinkedInSlideCard({
@@ -18,6 +20,8 @@ export function LinkedInSlideCard({
   totalSlides,
   profile,
   branding,
+  imageProgress,
+  timeRemaining,
 }: LinkedInSlideCardProps) {
   const isCover = slide.index === 0;
   const isGenerating =
@@ -38,6 +42,8 @@ export function LinkedInSlideCard({
               ? "rendering"
               : "pending"
         }
+        progress={imageProgress}
+        timeRemaining={timeRemaining}
       />
     );
   }

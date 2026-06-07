@@ -1,6 +1,6 @@
 "use client";
 
-import { CarouselRenderProgress } from "@/components/create/CarouselRenderProgress";
+import { PostGeneratingPreview } from "@/components/create/PostGeneratingPreview";
 import type { GeneratePostValues } from "@/components/forms/GeneratePostForm";
 import { GeneratePostForm } from "@/components/forms/GeneratePostForm";
 import { ApprovePostCard } from "@/components/generative/ApprovePostCard";
@@ -33,7 +33,7 @@ export function GuidedStepInline() {
     generatePost,
     renderAttemptCards,
     handlePreviewInFeed,
-    carouselRenderState,
+    generationPreview,
   } = usePostActionsContext();
 
   const [generating, setGenerating] = useState(false);
@@ -59,6 +59,7 @@ export function GuidedStepInline() {
   };
 
   const profileComplete = Boolean(brandProfile.name && brandProfile.niche);
+  const isGenerating = Boolean(generationPreview?.active);
 
   if (stage === "post") {
     return (
@@ -75,8 +76,15 @@ export function GuidedStepInline() {
           loading={generating}
           onSubmit={handleGenerateSubmit}
         />
-        <CarouselRenderProgress state={carouselRenderState} />
-        {lastAttempt && (
+        {generationPreview?.active && (
+          <PostGeneratingPreview
+            preview={generationPreview}
+            brandProfile={brandProfile}
+            lastAttempt={lastAttempt}
+            branding={lastAttempt?.branding}
+          />
+        )}
+        {lastAttempt && !isGenerating && (
           <div className="mt-4 space-y-2">
             {renderAttemptCards(lastAttempt, lastWeaveTraceId, {
               showFeedback: true,

@@ -12,6 +12,8 @@ interface LinkedInCarouselPreviewProps {
   profile: BrandProfile;
   topic?: string;
   branding?: PostBrandingOptions;
+  slideImageProgress?: number;
+  slideTimeRemaining?: string;
 }
 
 export function LinkedInCarouselPreview({
@@ -19,6 +21,8 @@ export function LinkedInCarouselPreview({
   profile,
   topic,
   branding,
+  slideImageProgress,
+  slideTimeRemaining,
 }: LinkedInCarouselPreviewProps) {
   const slides = post.slides ?? [];
   const [activeIndex, setActiveIndex] = useState(0);
@@ -57,6 +61,8 @@ export function LinkedInCarouselPreview({
                   totalSlides={slides.length}
                   profile={profile}
                   branding={branding}
+                  imageProgress={slideImageProgress}
+                  timeRemaining={slideTimeRemaining}
                 />
               </div>
             ))}

@@ -1,4 +1,5 @@
 import type { StudioFlowStage } from "@/lib/create-flow/stages";
+import { isAttemptMediaComplete } from "@/lib/attempt-media-complete";
 import type { PostAttempt } from "@/lib/types";
 
 export interface StageChip {
@@ -69,7 +70,7 @@ export function hasGeneratedPost(attempt: PostAttempt | null): boolean {
 }
 
 export function hasJudgeFeedback(attempt: PostAttempt | null): boolean {
-  if (!attempt) return false;
+  if (!attempt || !isAttemptMediaComplete(attempt)) return false;
   return (
     attempt.judgeScore > 0 ||
     attempt.problems.length > 0 ||

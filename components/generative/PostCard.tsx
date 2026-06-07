@@ -1,5 +1,6 @@
 "use client";
 
+import { ImageGeneratingPlaceholder } from "@/components/linkedin/ImageGeneratingPlaceholder";
 import { LinkedInCarouselPreview } from "@/components/linkedin/LinkedInCarouselPreview";
 import { LinkedInTextPreview } from "@/components/linkedin/LinkedInTextPreview";
 import { formatPostForDisplay } from "@/lib/linkedin-format";
@@ -16,6 +17,9 @@ interface PostCardProps {
   topic?: string;
   branding?: PostBrandingOptions;
   onCopy?: (text: string) => void;
+  loadingImageProgress?: number;
+  loadingTimeRemaining?: string;
+  slideImageProgress?: number;
 }
 
 type Tab = "preview" | "raw";
@@ -26,6 +30,9 @@ export function PostCard({
   topic,
   branding,
   onCopy,
+  loadingImageProgress,
+  loadingTimeRemaining,
+  slideImageProgress,
 }: PostCardProps) {
   const [tab, setTab] = useState<Tab>("preview");
   const post = variants[0];
@@ -95,13 +102,23 @@ export function PostCard({
               profile={brandProfile}
               topic={topic}
               branding={branding}
+              slideImageProgress={slideImageProgress}
+              slideTimeRemaining={loadingTimeRemaining}
             />
           ) : (
-            <LinkedInTextPreview
-              post={post}
-              profile={brandProfile}
-              branding={branding}
-            />
+            <>
+              <LinkedInTextPreview
+                post={post}
+                profile={brandProfile}
+                branding={branding}
+              />
+              {loadingImageProgress !== undefined && !post.image?.url && (
+                <ImageGeneratingPlaceholder
+                  progress={loadingImageProgress}
+                  timeRemaining={loadingTimeRemaining ?? ""}
+                />
+              )}
+            </>
           )}
         </div>
       ) : (
