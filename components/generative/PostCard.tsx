@@ -1,16 +1,28 @@
 "use client";
 
+import { LinkedInCarouselPreview } from "@/components/linkedin/LinkedInCarouselPreview";
+import { LinkedInTextPreview } from "@/components/linkedin/LinkedInTextPreview";
 import { formatPostForDisplay } from "@/lib/linkedin-format";
-import type { LinkedInPost } from "@/lib/types";
+import type { BrandProfile, LinkedInPost } from "@/lib/types";
 import { useState } from "react";
 
 interface PostCardProps {
   variants: LinkedInPost[];
+  brandProfile: BrandProfile;
+  topic?: string;
   onCopy?: (text: string) => void;
 }
 
-export function PostCard({ variants, onCopy }: PostCardProps) {
+type Tab = "preview" | "raw";
+
+export function PostCard({
+  variants,
+  brandProfile,
+  topic,
+  onCopy,
+}: PostCardProps) {
   const [activeIndex, setActiveIndex] = useState(0);
+  const [tab, setTab] = useState<Tab>("preview");
   const post = variants[activeIndex];
 
   if (!post) return null;
@@ -19,9 +31,25 @@ export function PostCard({ variants, onCopy }: PostCardProps) {
 
   return (
     <div className="my-3 rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-      <div className="mb-3 flex items-center justify-between">
+      <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
         <h3 className="text-sm font-semibold text-slate-800">LinkedIn Post</h3>
-        <div className="flex gap-1">
+        <div className="flex flex-wrap gap-1">
+          <div className="flex rounded-lg bg-slate-100 p-0.5">
+            {(["preview", "raw"] as Tab[]).map((t) => (
+              <button
+                key={t}
+                type="button"
+                onClick={() => setTab(t)}
+                className={`rounded-md px-2 py-0.5 text-xs font-medium capitalize ${
+                  tab === t
+                    ? "bg-white text-slate-900 shadow-sm"
+                    : "text-slate-600"
+                }`}
+              >
+                {t}
+              </button>
+            ))}
+          </div>
           {variants.map((_, i) => (
             <button
               key={i}
@@ -38,11 +66,29 @@ export function PostCard({ variants, onCopy }: PostCardProps) {
           ))}
         </div>
       </div>
-      <pre className="whitespace-pre-wrap rounded-lg bg-slate-50 p-3 text-sm leading-relaxed text-slate-700">
-        {text}
-      </pre>
+
+      {tab === "preview" ? (
+        post.format === "carousel" ? (
+          <LinkedInCarouselPreview
+            post={post}
+            profile={brandProfile}
+            topic={topic}
+          />
+        ) : (
+          <LinkedInTextPreview post={post} profile={brandProfile} />
+        )
+      ) : (
+        <pre className="whitespace-pre-wrap rounded-lg bg-slate-50 p-3 text-sm leading-relaxed text-slate-700">
+          {text}
+        </pre>
+      )}
+
       <div className="mt-3 flex items-center justify-between text-xs text-slate-500">
-        <span>{post.characterCount} chars · {post.postType}</span>
+        <span>
+          {post.characterCount} chars · {post.postType} · {post.format}
+          {post.image ? " · image" : ""}
+          {post.slides?.length ? ` · ${post.slides.length} slides` : ""}
+        </span>
         <button
           type="button"
           onClick={() => {
