@@ -1,0 +1,83 @@
+{
+  "attempt": {
+    "attemptNumber": 1,
+    "topic": "E2E carousel topic",
+    "variants": [
+      {
+        "format": "carousel",
+        "hook": "If you're a software engineer, read this",
+        "body": "Seven things shifting in your job right now.",
+        "cta": "Follow for more",
+        "hashtags": ["#engineering", "#career"],
+        "postType": "story",
+        "characterCount": 120,
+        "slides": [
+          {
+            "index": 0,
+            "title": "Cover hook",
+            "body": "Swipe to learn more",
+            "layout": "portrait_cover",
+            "pngStatus": "pending"
+          },
+          {
+            "index": 1,
+            "title": "Before",
+            "body": "Read requirements, write code, test, ship",
+            "layout": "split_before_after",
+            "pngStatus": "pending"
+          },
+          {
+            "index": 2,
+            "title": "After",
+            "body": "Describe intent to AI, review, integrate",
+            "layout": "template_content",
+            "pngStatus": "pending"
+          },
+          {
+            "index": 3,
+            "title": "Lesson 1",
+            "body": "Thinking clearly beats typing faster",
+            "layout": "template_content",
+            "pngStatus": "pending"
+          },
+          {
+            "index": 4,
+            "title": "Your move",
+            "body": "Save this carousel and try one change this week",
+            "layout": "portrait_cta",
+            "pngStatus": "pending"
+          }
+        ]
+      },
+      {
+        "format": "carousel",
+        "hook": "Variant B hook",
+        "body": "Alt caption",
+        "cta": "Connect",
+        "hashtags": ["#test"],
+        "postType": "story",
+        "characterCount": 80,
+        "slides": [
+          {
+            "index": 0,
+            "title": "B Cover",
+            "body": "Alt slide",
+            "layout": "portrait_cover",
+            "pngStatus": "pending"
+          }
+        ]
+      }
+    ],
+    "judgeScore": 8,
+    "problems": [],
+    "breakdown": {
+      "hook_strength": 8,
+      "voice_authenticity": 8,
+      "audience_fit": 8,
+      "engagement_potential": 7,
+      "brand_alignment": 8
+    },
+    "retrievedMemories": []
+  },
+  "weaveTraceId": "e2e-stub"
+}

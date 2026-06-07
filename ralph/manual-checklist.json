@@ -1,0 +1,28 @@
+{
+  "items": [
+    {
+      "id": "MANUAL-001",
+      "title": "Real OpenAI + Redis post generation",
+      "steps": "Run /create with live API keys; generate a text post; confirm judge score and memory retrieval in Weave/Redis.",
+      "status": "n/a"
+    },
+    {
+      "id": "MANUAL-002",
+      "title": "Weave score improvement demo",
+      "steps": "Submit feedback on attempt 1, retry with lesson, confirm score improves in Weave traces.",
+      "status": "n/a"
+    },
+    {
+      "id": "MANUAL-003",
+      "title": "Supabase profile image upload/display",
+      "steps": "Upload profile photo in ProfileForm; confirm it appears on BrandProfileCard and feed preview.",
+      "status": "n/a"
+    },
+    {
+      "id": "MANUAL-004",
+      "title": "End-to-end profile to preview",
+      "steps": "Submit profile, generate post, continue to preview, approve, open /preview/[sessionId] feed mock.",
+      "status": "n/a"
+    }
+  ]
+}
