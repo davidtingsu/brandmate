@@ -1,49 +1,93 @@
 "use client";
 
 import { BrandMateRenderMessage } from "@/components/chat/BrandMateRenderMessage";
+import { CreateChatInput } from "@/components/create/CreateChatInput";
+import { CreateFlowStepper } from "@/components/create/CreateFlowStepper";
 import { CreatePostSkeleton } from "@/components/create/CreatePostSkeleton";
+import { GuidedStepPanel } from "@/components/create/GuidedStepPanel";
+import { CreateFlowProvider, useCreateFlow } from "@/contexts/CreateFlowContext";
 import { useSessionLoader } from "@/hooks/useSessionLoader";
-import { useDiagramAgent } from "@/hooks/useDiagramAgent";
 import { useGenerativeUI } from "@/hooks/useGenerativeUI";
 import { usePostActions } from "@/hooks/usePostActions";
 import { useChatSessionContext } from "@/contexts/ChatSessionContext";
+import { hasApprovedPost } from "@/lib/sessions/approved-post";
+import type { CreateFlowStage } from "@/lib/create-flow/stages";
 import { CopilotKit } from "@copilotkit/react-core";
 import { CopilotChat } from "@copilotkit/react-ui";
 import Image from "next/image";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+
+const STAGE_CHAT_LABELS: Record<
+  CreateFlowStage,
+  { initial: string; inputHint: string }
+> = {
+  brand: {
+    initial:
+      "Welcome! Complete your brand profile in the form above to get started.",
+    inputHint: "Complete the brand form above to continue.",
+  },
+  post: {
+    initial:
+      "Use the form above to generate your post. I can help you refine the draft, explain feedback, or retry with lessons.",
+    inputHint: "Ask me to help refine your draft…",
+  },
+  preview: {
+    initial:
+      "Review your draft above, then click Preview in feed to see it on LinkedIn.",
+    inputHint: "Use Preview in feed above to continue.",
+  },
+};
+
+function createDisabledInput(hint: string) {
+  return function StageDisabledInput() {
+    return <CreateChatInput hint={hint} />;
+  };
+}
 
 function CreatePostChatInner({
   onChatStarted,
 }: {
   onChatStarted: () => void | Promise<void>;
 }) {
-  usePostActions();
+  const { stage } = useCreateFlow();
+  const postActions = usePostActions();
   useGenerativeUI();
-  useDiagramAgent();
+
+  const labels = STAGE_CHAT_LABELS[stage];
+  const ChatInput = useMemo(
+    () =>
+      stage === "post" ? undefined : createDisabledInput(labels.inputHint),
+    [stage, labels.inputHint]
+  );
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
+      <CreateFlowStepper />
+      <GuidedStepPanel postActions={postActions} />
       <CopilotChat
         className="flex min-h-0 flex-1 flex-col"
         RenderMessage={BrandMateRenderMessage}
         onSubmitMessage={() => void onChatStarted()}
+        instructions={labels.initial}
         labels={{
           title: "BrandMate Coach",
-          initial:
-            "Tell me about your brand, ask for a LinkedIn post, or ask me to explain how something works — I'll dispatch a diagram agent for technical concepts.",
+          initial: labels.initial,
+          placeholder: labels.inputHint,
         }}
+        Input={ChatInput}
       />
     </div>
   );
 }
 
-export function CreatePostChat() {
+function CreatePostChatContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const sessionParam = searchParams.get("session");
   const { copilotThreadId, loading: sessionsLoading } = useChatSessionContext();
   const { loadSession, ensureSession, loadSessions } = useSessionLoader();
+  const { hydrateFromMessages } = useCreateFlow();
   const [ready, setReady] = useState(false);
 
   const handleChatStarted = useCallback(async () => {
@@ -63,7 +107,12 @@ export function CreatePostChat() {
       }
 
       if (sessionParam) {
-        await loadSession(sessionParam);
+        const messages = await loadSession(sessionParam);
+        if (hasApprovedPost(messages)) {
+          router.replace(`/preview/${sessionParam}`);
+          return;
+        }
+        hydrateFromMessages(messages);
       }
 
       if (!cancelled) {
@@ -74,7 +123,14 @@ export function CreatePostChat() {
     return () => {
       cancelled = true;
     };
-  }, [sessionParam, loadSession, loadSessions, sessionsLoading]);
+  }, [
+    sessionParam,
+    loadSession,
+    loadSessions,
+    sessionsLoading,
+    hydrateFromMessages,
+    router,
+  ]);
 
   if (!ready) {
     return <CreatePostSkeleton />;
@@ -93,7 +149,7 @@ export function CreatePostChat() {
           />
           <div>
             <h1 className="text-sm font-semibold text-slate-900">New post</h1>
-            <p className="text-xs text-slate-500">Copilot coaching session</p>
+            <p className="text-xs text-slate-500">Guided create flow</p>
           </div>
         </div>
         <button
@@ -111,5 +167,13 @@ export function CreatePostChat() {
         </CopilotKit>
       </div>
     </main>
+  );
+}
+
+export function CreatePostChat() {
+  return (
+    <CreateFlowProvider>
+      <CreatePostChatContent />
+    </CreateFlowProvider>
   );
 }

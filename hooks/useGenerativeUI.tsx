@@ -4,18 +4,34 @@ import { ProfileForm } from "@/components/forms/ProfileForm";
 import { GeneratePostForm } from "@/components/forms/GeneratePostForm";
 import { FormatPickerCard } from "@/components/generative/FormatPickerCard";
 import { useBrandProfile } from "@/contexts/BrandProfileContext";
+import { useCreateFlow } from "@/contexts/CreateFlowContext";
 import { useChatSessionContext } from "@/contexts/ChatSessionContext";
 import { useSessionLoader } from "@/hooks/useSessionLoader";
-import { BRANDMATE_COACH_DIAGRAM_DISPATCH } from "@/lib/agents/diagram-explainer-agent";
 import type { BrandProfile } from "@/lib/types";
 import {
   useCopilotAdditionalInstructions,
   useHumanInTheLoop,
 } from "@copilotkit/react-core";
-import { useCallback } from "react";
+import { useCallback, useMemo } from "react";
+
+const STAGE_INSTRUCTIONS = {
+  brand: `You are BrandMate on Step 1 (Brand).
+- The user completes their brand profile in the guided panel above. Do not discuss posts yet.
+- Do not call collectBrandProfile or createPost. Profile is handled by the panel.
+- Keep replies brief if the user asks questions about their brand setup.`,
+  post: `You are BrandMate on Step 2 (Create post).
+- The user generates posts via the guided panel. Help them refine drafts in chat.
+- Use submitHumanFeedback, storeLesson, and retryWithLesson to iterate on the draft.
+- Do not call approvePost until the user reaches Step 3 (Preview).
+- Do not call collectBrandProfile or collectPostRequest — forms are in the guided panel.`,
+  preview: `You are BrandMate on Step 3 (Preview).
+- The user reviews their draft and clicks "Preview in feed" in the panel above.
+- Encourage them to preview in the LinkedIn feed. Do not start new generation.`,
+} as const;
 
 export function useGenerativeUI() {
   const { brandProfile, setBrandProfile } = useBrandProfile();
+  const { stage } = useCreateFlow();
   const { sessionsEnabled } = useChatSessionContext();
   const { ensureSession } = useSessionLoader();
 
@@ -36,23 +52,20 @@ export function useGenerativeUI() {
     [ensureSession, sessionsEnabled]
   );
 
-  useCopilotAdditionalInstructions({
-    instructions: `You are BrandMate, a LinkedIn personal brand coach.
-- Before generating a post, ensure the user has a brand profile. If missing, call collectBrandProfile.
-- To start generation, call collectPostRequest to show the structured form in chat, then call createPost with the returned values.
-- After generating, help the user refine with submitHumanFeedback, storeLesson, and retryWithLesson.
-- When the user is happy, tell them to click "Preview in feed" on the approve card.
-- Formats: text, text with image (includeImage true), carousel (format carousel, slideCount 5-10).
-- Support handle and profileImageUrl on the brand profile.
+  const instructions = useMemo(
+    () => STAGE_INSTRUCTIONS[stage],
+    [stage]
+  );
 
-${BRANDMATE_COACH_DIAGRAM_DISPATCH}`,
-    available: brandProfile.name && brandProfile.niche ? "enabled" : "enabled",
+  useCopilotAdditionalInstructions({
+    instructions,
+    available: "enabled",
   });
 
   useHumanInTheLoop({
     name: "collectBrandProfile",
     description:
-      "Show an in-chat form to collect the user's LinkedIn brand profile (name, niche, audience, voice, handle, photo)",
+      "Fallback: show in-chat form to collect brand profile (primary path is guided panel)",
     parameters: [],
     render: ({ status, respond }) => {
       if (status !== "executing" || !respond) return <></>;
@@ -73,7 +86,7 @@ ${BRANDMATE_COACH_DIAGRAM_DISPATCH}`,
   useHumanInTheLoop({
     name: "collectPostRequest",
     description:
-      "Show an in-chat form to collect post topic, format (text/image/carousel), slide count, and branding toggles",
+      "Fallback: show in-chat form for post request (primary path is guided panel)",
     parameters: [],
     render: ({ status, respond }) => {
       if (status !== "executing" || !respond) return <></>;

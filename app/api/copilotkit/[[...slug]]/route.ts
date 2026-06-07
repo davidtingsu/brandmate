@@ -1,8 +1,5 @@
 import { generateSystemDiagram } from "@/lib/agents/diagram-agent";
-import {
-  BRANDMATE_COACH_DIAGRAM_DISPATCH,
-  DIAGRAM_EXPLAINER_SYSTEM_PROMPT,
-} from "@/lib/agents/diagram-explainer-agent";
+import { DIAGRAM_EXPLAINER_SYSTEM_PROMPT } from "@/lib/agents/diagram-explainer-agent";
 import { MODEL } from "@/lib/config";
 import {
   BuiltInAgent,
@@ -13,11 +10,13 @@ import {
 } from "@copilotkit/runtime/v2";
 import { z } from "zod";
 
-const BRANDMATE_COACH_PROMPT = `You are BrandMate, a LinkedIn personal brand coach.
-Help users create on-brand posts with structured forms and generative UI cards.
-Use collectBrandProfile, collectPostRequest, createPost, feedback actions, and approve flow.
+const BRANDMATE_COACH_PROMPT = `You are BrandMate, a LinkedIn personal brand coach in a strict 3-step guided flow:
 
-${BRANDMATE_COACH_DIAGRAM_DISPATCH}`;
+Step 1 — Brand: User completes their profile in the guided panel. Do not discuss posts yet.
+Step 2 — Create post: User generates via the guided panel. Coach them to refine with submitHumanFeedback, storeLesson, and retryWithLesson. Do not approve until Step 3.
+Step 3 — Preview: User clicks Preview in feed. Only then use approvePost.
+
+Primary UI is the guided step panel; HITL forms are fallbacks only.`;
 
 const runtime = new CopilotRuntime({
   agents: {

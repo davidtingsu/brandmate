@@ -10,6 +10,7 @@ import { MemoryListCard } from "@/components/generative/MemoryListCard";
 import { PostCard } from "@/components/generative/PostCard";
 import { useBrandProfile } from "@/contexts/BrandProfileContext";
 import { useChatSessionContext } from "@/contexts/ChatSessionContext";
+import { useCreateFlow } from "@/contexts/CreateFlowContext";
 import { useSessionLoader } from "@/hooks/useSessionLoader";
 import type {
   BrandProfile,
@@ -21,13 +22,32 @@ import type {
 } from "@/lib/types";
 import { useCopilotAction, useCopilotReadable } from "@copilotkit/react-core";
 import { useRouter } from "next/navigation";
-import { useCallback, useRef } from "react";
+import { useCallback, useEffect, useRef } from "react";
+
+export interface GeneratePostParams {
+  topic: string;
+  format?: PostFormat;
+  includeImage?: boolean;
+  imageStyle?: string;
+  slideCount?: number;
+  postType?: PostType;
+  imageUrl?: string;
+  includeHandle?: boolean;
+  includeProfileImage?: boolean;
+  branding?: PostBrandingOptions;
+}
+
+export interface RenderAttemptCardsOptions {
+  showFeedback?: boolean;
+  showPreviewCta?: boolean;
+}
 
 export function usePostActions() {
   const router = useRouter();
   const { brandProfile, setBrandProfile } = useBrandProfile();
   const { persistAttempt, sessionsEnabled } = useChatSessionContext();
   const { ensureSession } = useSessionLoader();
+  const { lastAttempt, setLastAttempt } = useCreateFlow();
 
   const lastAttemptRef = useRef<PostAttempt | null>(null);
   const lastBrandingRef = useRef<PostBrandingOptions | undefined>(undefined);
@@ -39,6 +59,18 @@ export function usePostActions() {
   } | null>(null);
   const attemptCounterRef = useRef(1);
   const lastFormatRef = useRef<PostFormat>("text");
+
+  useEffect(() => {
+    if (lastAttempt) {
+      lastAttemptRef.current = lastAttempt;
+      attemptCounterRef.current = lastAttempt.attemptNumber;
+      if (lastAttempt.branding) {
+        lastBrandingRef.current = lastAttempt.branding;
+      }
+      const format = lastAttempt.variants[0]?.format;
+      if (format) lastFormatRef.current = format;
+    }
+  }, [lastAttempt]);
 
   useCopilotReadable({
     description: "User's LinkedIn personal brand profile",
@@ -115,41 +147,123 @@ export function usePostActions() {
     }
   }, [persistApprovedPost, router]);
 
-  const renderAttemptCards = (
-    attempt: PostAttempt,
-    weaveTraceId?: string,
-    showFeedback = true
-  ) => (
-    <>
-      <MemoryListCard lessons={attempt.retrievedMemories} topic={attempt.topic} />
-      <PostCard
-        variants={attempt.variants}
-        brandProfile={brandProfile}
-        topic={attempt.topic}
-        branding={attempt.branding ?? lastBrandingRef.current}
-      />
-      <JudgeBreakdown breakdown={attempt.breakdown} score={attempt.judgeScore} />
-      <AttemptCard attempt={attempt} weaveProject={weaveTraceId} />
-      {showFeedback && (
+  const renderAttemptCards = useCallback(
+    (
+      attempt: PostAttempt,
+      weaveTraceId?: string,
+      options: RenderAttemptCardsOptions = {}
+    ) => {
+      const { showFeedback = true, showPreviewCta = false } = options;
+      return (
         <>
-          <HumanFeedbackButtons
-            onSelect={async (feedback) => {
-              await fetch("/api/agents/memory", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                  action: "feedback",
-                  feedbackType: feedback,
-                  scoreBefore: attempt.judgeScore,
-                  traceId: attempt.weaveTraceId,
-                }),
-              });
-            }}
+          <MemoryListCard
+            lessons={attempt.retrievedMemories}
+            topic={attempt.topic}
           />
-          <ApprovePostCard onPreview={() => void handlePreviewInFeed()} />
+          <PostCard
+            variants={attempt.variants}
+            brandProfile={brandProfile}
+            topic={attempt.topic}
+            branding={attempt.branding ?? lastBrandingRef.current}
+          />
+          <JudgeBreakdown
+            breakdown={attempt.breakdown}
+            score={attempt.judgeScore}
+          />
+          <AttemptCard attempt={attempt} weaveProject={weaveTraceId} />
+          {showFeedback && (
+            <HumanFeedbackButtons
+              onSelect={async (feedback) => {
+                await fetch("/api/agents/memory", {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({
+                    action: "feedback",
+                    feedbackType: feedback,
+                    scoreBefore: attempt.judgeScore,
+                    traceId: attempt.weaveTraceId,
+                  }),
+                });
+              }}
+            />
+          )}
+          {showPreviewCta && (
+            <ApprovePostCard onPreview={() => void handlePreviewInFeed()} />
+          )}
         </>
-      )}
-    </>
+      );
+    },
+    [brandProfile, handlePreviewInFeed]
+  );
+
+  const runOrchestrate = useCallback(
+    async (params: GeneratePostParams & { isRetry?: boolean }) => {
+      const profile = ensureProfile();
+      const postFormat = (params.format as PostFormat) ?? "text";
+      lastFormatRef.current = postFormat;
+
+      const branding: PostBrandingOptions | undefined =
+        params.branding ??
+        (params.includeHandle !== undefined ||
+        params.includeProfileImage !== undefined
+          ? {
+              includeHandle: params.includeHandle ?? false,
+              includeProfileImage: params.includeProfileImage ?? false,
+            }
+          : lastBrandingRef.current);
+
+      lastBrandingRef.current = branding;
+
+      if (params.isRetry) {
+        attemptCounterRef.current += 1;
+      }
+
+      const res = await fetch("/api/agents/orchestrate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          topic: params.topic,
+          brandProfile: profile,
+          attemptNumber: attemptCounterRef.current,
+          postType: params.postType ?? "story",
+          format: postFormat,
+          includeImage: params.includeImage ?? false,
+          imageStyle: params.imageStyle,
+          slideCount: params.slideCount,
+          imageUrl: params.imageUrl,
+          branding,
+          scoreBefore: params.isRetry
+            ? lastAttemptRef.current?.judgeScore
+            : undefined,
+        }),
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error ?? "Failed to create post");
+      }
+      const data = await res.json();
+      const attempt = {
+        ...(data.attempt as PostAttempt),
+        branding: branding ?? (data.attempt as PostAttempt).branding,
+      };
+      lastAttemptRef.current = attempt;
+      setLastAttempt(attempt, data.weaveTraceId as string | undefined);
+      const sessionId = await ensureSession();
+      await persistAttempt(
+        {
+          attempt,
+          weaveTraceId: data.weaveTraceId,
+        },
+        sessionId ?? undefined
+      );
+      return { ...data, attempt, weaveTraceId: data.weaveTraceId as string };
+    },
+    [ensureProfile, ensureSession, persistAttempt, setLastAttempt]
+  );
+
+  const generatePost = useCallback(
+    async (params: GeneratePostParams) => runOrchestrate(params),
+    [runOrchestrate]
   );
 
   useCopilotAction({
@@ -253,66 +367,18 @@ export function usePostActions() {
         required: false,
       },
     ],
-    handler: async ({
-      topic,
-      format,
-      includeImage,
-      imageStyle,
-      slideCount,
-      postType,
-      imageUrl,
-      includeHandle,
-      includeProfileImage,
-    }) => {
-      const profile = ensureProfile();
-      const postFormat = (format as PostFormat) ?? "text";
-      lastFormatRef.current = postFormat;
-
-      const branding: PostBrandingOptions | undefined =
-        includeHandle !== undefined || includeProfileImage !== undefined
-          ? {
-              includeHandle: includeHandle ?? false,
-              includeProfileImage: includeProfileImage ?? false,
-            }
-          : lastBrandingRef.current;
-
-      lastBrandingRef.current = branding;
-
-      const res = await fetch("/api/agents/orchestrate", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          topic,
-          brandProfile: profile,
-          attemptNumber: attemptCounterRef.current,
-          postType: (postType as PostType) ?? "story",
-          format: postFormat,
-          includeImage: includeImage ?? false,
-          imageStyle,
-          slideCount,
-          imageUrl,
-          branding,
-        }),
+    handler: async (params) => {
+      return generatePost({
+        topic: params.topic,
+        format: (params.format as PostFormat) ?? "text",
+        includeImage: params.includeImage,
+        imageStyle: params.imageStyle,
+        slideCount: params.slideCount,
+        postType: (params.postType as PostType) ?? "story",
+        imageUrl: params.imageUrl,
+        includeHandle: params.includeHandle,
+        includeProfileImage: params.includeProfileImage,
       });
-      if (!res.ok) {
-        const err = await res.json();
-        throw new Error(err.error ?? "Failed to create post");
-      }
-      const data = await res.json();
-      const attempt = {
-        ...(data.attempt as PostAttempt),
-        branding: branding ?? (data.attempt as PostAttempt).branding,
-      };
-      lastAttemptRef.current = attempt;
-      const sessionId = await ensureSession();
-      await persistAttempt(
-        {
-          attempt,
-          weaveTraceId: data.weaveTraceId,
-        },
-        sessionId ?? undefined
-      );
-      return { ...data, attempt };
     },
     render: ({ status, result }) => {
       if (status === "inProgress") {
@@ -329,7 +395,8 @@ export function usePostActions() {
       const attempt = result.attempt as PostAttempt;
       return renderAttemptCards(
         attempt,
-        result.weaveTraceId as string | undefined
+        result.weaveTraceId as string | undefined,
+        { showFeedback: true, showPreviewCta: false }
       );
     },
   });
@@ -337,7 +404,7 @@ export function usePostActions() {
   useCopilotAction({
     name: "approvePost",
     description:
-      "Mark the latest draft as approved and open the LinkedIn feed preview",
+      "Step 3 only: mark the latest draft as approved and open the LinkedIn feed preview",
     parameters: [
       {
         name: "variantIndex",
@@ -419,13 +486,10 @@ export function usePostActions() {
       }
       if (status !== "complete" || !result?.lesson) return <></>;
       return (
-        <>
-          <LessonCard
-            lesson={result.lesson as string}
-            scoreBefore={result.scoreBefore as number}
-          />
-          <ApprovePostCard onPreview={() => void handlePreviewInFeed()} />
-        </>
+        <LessonCard
+          lesson={result.lesson as string}
+          scoreBefore={result.scoreBefore as number}
+        />
       );
     },
   });
@@ -445,7 +509,7 @@ export function usePostActions() {
 
       if (!lessonText) throw new Error("No lesson to store");
 
-      const res = await fetch("/api/memory/store", {
+      const res = await fetch("/api/agents/memory", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -466,14 +530,11 @@ export function usePostActions() {
       if (status !== "complete" || !result?.lesson) return <></>;
       const stored = result.lesson as { lesson: string; score_before: number };
       return (
-        <>
-          <LessonCard
-            lesson={stored.lesson}
-            scoreBefore={stored.score_before}
-            approved
-          />
-          <ApprovePostCard onPreview={() => void handlePreviewInFeed()} />
-        </>
+        <LessonCard
+          lesson={stored.lesson}
+          scoreBefore={stored.score_before}
+          approved
+        />
       );
     },
   });
@@ -520,64 +581,20 @@ export function usePostActions() {
         required: false,
       },
     ],
-    handler: async ({
-      topic,
-      format,
-      includeImage,
-      slideCount,
-      postType,
-      includeHandle,
-      includeProfileImage,
-    }) => {
-      const profile = ensureProfile();
-      const scoreBefore = lastAttemptRef.current?.judgeScore;
-      const postFormat =
-        (format as PostFormat) ??
-        lastAttemptRef.current?.variants[0]?.format ??
-        "text";
-      lastFormatRef.current = postFormat;
-      attemptCounterRef.current += 1;
-
-      const branding: PostBrandingOptions | undefined =
-        includeHandle !== undefined || includeProfileImage !== undefined
-          ? {
-              includeHandle: includeHandle ?? false,
-              includeProfileImage: includeProfileImage ?? false,
-            }
-          : lastBrandingRef.current;
-      lastBrandingRef.current = branding;
-
-      const res = await fetch("/api/agents/orchestrate", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          topic,
-          brandProfile: profile,
-          attemptNumber: attemptCounterRef.current,
-          postType: (postType as PostType) ?? "story",
-          format: postFormat,
-          includeImage,
-          slideCount,
-          scoreBefore,
-          branding,
-        }),
+    handler: async (params) => {
+      return runOrchestrate({
+        topic: params.topic,
+        format:
+          (params.format as PostFormat) ??
+          lastAttemptRef.current?.variants[0]?.format ??
+          "text",
+        includeImage: params.includeImage,
+        slideCount: params.slideCount,
+        postType: (params.postType as PostType) ?? "story",
+        includeHandle: params.includeHandle,
+        includeProfileImage: params.includeProfileImage,
+        isRetry: true,
       });
-      if (!res.ok) throw new Error("Retry failed");
-      const data = await res.json();
-      const attempt = {
-        ...(data.attempt as PostAttempt),
-        branding: branding ?? (data.attempt as PostAttempt).branding,
-      };
-      lastAttemptRef.current = attempt;
-      const sessionId = await ensureSession();
-      await persistAttempt(
-        {
-          attempt,
-          weaveTraceId: data.weaveTraceId,
-        },
-        sessionId ?? undefined
-      );
-      return { ...data, attempt };
     },
     render: ({ status, result }) => {
       if (status === "inProgress") {
@@ -592,7 +609,7 @@ export function usePostActions() {
       return renderAttemptCards(
         attempt,
         result.weaveTraceId as string | undefined,
-        false
+        { showFeedback: true, showPreviewCta: false }
       );
     },
   });
@@ -622,4 +639,11 @@ export function usePostActions() {
       );
     },
   });
+
+  return {
+    generatePost,
+    persistProfile,
+    renderAttemptCards,
+    handlePreviewInFeed,
+  };
 }
