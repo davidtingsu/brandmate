@@ -71,13 +71,25 @@ export interface SearchSimilarPostsOptions {
   queryEmbedding: number[];
   niche?: string;
   excludeSessionId?: string;
+  allowedSessionIds?: string[];
   limit?: number;
 }
 
 export async function searchSimilarPosts(
   options: SearchSimilarPostsOptions
 ): Promise<SimilarPost[]> {
-  const { queryEmbedding, niche, excludeSessionId, limit = 3 } = options;
+  const {
+    queryEmbedding,
+    niche,
+    excludeSessionId,
+    allowedSessionIds,
+    limit = 3,
+  } = options;
+
+  if (allowedSessionIds !== undefined && allowedSessionIds.length === 0) {
+    return [];
+  }
+
   await ensurePostIndex();
 
   const redis = await getRedis();
@@ -87,6 +99,11 @@ export async function searchSimilarPosts(
   if (niche) {
     filters.push(`@niche:{${escapeTag(niche)}}`);
   }
+  if (allowedSessionIds?.length) {
+    filters.push(
+      `@session_id:{${allowedSessionIds.map(escapeTag).join("|")}}`
+    );
+  }
   if (excludeSessionId) {
     filters.push(`-@session_id:{${escapeTag(excludeSessionId)}}`);
   }
@@ -95,7 +112,7 @@ export async function searchSimilarPosts(
 
   const results = await redis.ft.search(
     INDEX_NAME,
-    `${filterQuery}=>[KNN ${limit + 2} @embedding $BLOB AS score]`,
+    `${filterQuery}=>[KNN ${limit + 5} @embedding $BLOB AS score]`,
     {
       PARAMS: { BLOB: vector },
       SORTBY: "score",
@@ -122,6 +139,7 @@ export async function searchSimilarPosts(
     const values = doc.value as Record<string, string>;
     const sessionId = values["$.session_id"] ?? "";
 
+    if (!sessionId) continue;
     if (excludeSessionId && sessionId === excludeSessionId) continue;
 
     const hook = values["$.hook"] ?? "";
