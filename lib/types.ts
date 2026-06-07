@@ -1,5 +1,7 @@
 export type PostType = "story" | "insight" | "lesson" | "milestone" | "hot_take";
 
+export type PostFormat = "text" | "carousel";
+
 export type HumanFeedbackType =
   | "too_generic"
   | "too_long"
@@ -14,13 +16,30 @@ export interface BrandProfile {
   goals?: string;
 }
 
+export interface PostImage {
+  url: string;
+  alt?: string;
+  aspectRatio?: "1.91:1" | "1:1";
+  source?: "generated" | "uploaded";
+}
+
+export interface CarouselSlide {
+  index: number;
+  title: string;
+  body: string;
+  imageUrl?: string;
+}
+
 export interface LinkedInPost {
+  format: PostFormat;
   hook: string;
   body: string;
   cta: string;
   hashtags: string[];
   postType: PostType;
   characterCount: number;
+  image?: PostImage;
+  slides?: CarouselSlide[];
 }
 
 export interface Lesson {
@@ -65,10 +84,28 @@ export interface GenerateInput {
   lessons: Lesson[];
   attemptNumber: number;
   postType?: PostType;
+  format?: PostFormat;
   scoreBefore?: number;
 }
 
 export interface GenerateOutput {
+  variants: LinkedInPost[];
+  attemptNumber: number;
+  postType: PostType;
+  format: PostFormat;
+}
+
+export interface CarouselGenerateInput {
+  topic: string;
+  brandProfile: BrandProfile;
+  lessons: Lesson[];
+  attemptNumber: number;
+  postType?: PostType;
+  slideCount?: number;
+  scoreBefore?: number;
+}
+
+export interface CarouselGenerateOutput {
   variants: LinkedInPost[];
   attemptNumber: number;
   postType: PostType;
@@ -105,6 +142,11 @@ export interface OrchestrateInput {
   brandProfile: BrandProfile;
   attemptNumber?: number;
   postType?: PostType;
+  format?: PostFormat;
+  includeImage?: boolean;
+  imageStyle?: string;
+  imageUrl?: string;
+  slideCount?: number;
   scoreBefore?: number;
   niche?: string;
 }
@@ -112,4 +154,22 @@ export interface OrchestrateInput {
 export interface OrchestrateOutput {
   attempt: PostAttempt;
   weaveTraceId?: string;
+}
+
+export interface ChatThread {
+  id: string;
+  user_id: string;
+  title: string | null;
+  copilot_thread_id: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ChatMessage {
+  id: string;
+  thread_id: string;
+  role: string;
+  content: string | null;
+  metadata: Record<string, unknown>;
+  created_at: string;
 }

@@ -11,7 +11,16 @@ export const MAX_TOKENS = {
   generate: 800,
   judge: 400,
   memory: 150,
+  carousel: 1200,
 } as const;
+
+export const DEFAULT_SLIDE_COUNT = 7;
+export const MIN_SLIDE_COUNT = 5;
+export const MAX_SLIDE_COUNT = 10;
+
+export const IMAGE_MODEL = process.env.OPENAI_IMAGE_MODEL ?? "gpt-image-1";
+export const SUPABASE_STORAGE_BUCKET =
+  process.env.SUPABASE_STORAGE_BUCKET ?? "post-images";
 
 export const WEAVE_PROJECT =
   process.env.WEAVE_PROJECT ?? "your-username/brandmate";
