@@ -5,17 +5,19 @@ import {
   MAX_TOKENS,
   modelTokenBudget,
 } from "@/lib/config";
+import { generateSystemDiagram } from "@/lib/agents/diagram-agent";
 import { parseModelJson } from "@/lib/parse-model-json";
 import { generateCarouselCore } from "@/lib/pipeline/carousel-gen";
+import { generateDiagramImage } from "@/lib/pipeline/diagram-image-gen";
 import { generatePostImageCore } from "@/lib/pipeline/image-gen";
 import { buildRevisionPromptBlocks } from "@/lib/pipeline/revision-prompt";
 import { buildLinkedInPost } from "@/lib/linkedin-format";
+import { storePost } from "@/lib/redis/post-store";
 import { searchMemories } from "@/lib/redis/vector-search";
 import { storeLesson as storeLessonInRedis } from "@/lib/redis/lesson-store";
 import type {
   GenerateInput,
   GenerateOutput,
-  HumanFeedbackType,
   JudgeInput,
   JudgeOutput,
   Lesson,
@@ -27,6 +29,7 @@ import type {
   PostType,
   SummarizeLessonInput,
   SummarizeLessonOutput,
+  SystemDiagram,
 } from "@/lib/types";
 import { CAROUSEL_MODEL, getOpenAI, MODEL } from "@/lib/weave/openai";
 
@@ -248,9 +251,91 @@ export async function storeLessonCore(input: {
   score_before: number;
   score_after?: number;
   post_type?: PostType;
-  human_feedback?: HumanFeedbackType;
+  human_feedback?: string;
+  judge_feedback?: string;
 }): Promise<Lesson> {
   return storeLessonInRedis(input);
+}
+
+function shouldStoreRevisionLesson(input: OrchestrateInput): boolean {
+  return Boolean(
+    input.userFeedback?.trim() ||
+      input.judgeRevisionContext?.trim() ||
+      input.scoreBefore !== undefined
+  );
+}
+
+function buildJudgeFeedbackForStore(
+  input: OrchestrateInput,
+  judged: JudgeOutput
+): string {
+  if (input.judgeRevisionContext?.trim()) {
+    return input.judgeRevisionContext.trim();
+  }
+  const parts: string[] = [];
+  if (judged.feedback) parts.push(judged.feedback);
+  if (judged.problems.length > 0) {
+    parts.push(`Problems: ${judged.problems.join("; ")}`);
+  }
+  return parts.join("\n");
+}
+
+async function maybeStoreRevisionLesson(
+  input: OrchestrateInput,
+  judged: JudgeOutput
+): Promise<Lesson | undefined> {
+  if (!shouldStoreRevisionLesson(input)) return undefined;
+
+  const niche = input.niche ?? input.brandProfile.niche;
+  const judgeFeedback = buildJudgeFeedbackForStore(input, judged);
+  const humanFeedback =
+    input.userFeedback?.trim() ?? "judge-driven retry";
+
+  try {
+    const summarized = await summarizeLessonCore({
+      topic: input.topic,
+      humanFeedback,
+      judgeFeedback,
+      problems: judged.problems,
+      scoreBefore: input.scoreBefore ?? judged.score,
+    });
+
+    return await storeLessonInRedis({
+      task: input.topic,
+      niche,
+      lesson: summarized.lesson,
+      score_before: input.scoreBefore ?? judged.score,
+      score_after: judged.score,
+      human_feedback: input.userFeedback?.trim() || undefined,
+      judge_feedback: judgeFeedback || undefined,
+      post_type: input.postType,
+    });
+  } catch (error) {
+    console.error("[maybeStoreRevisionLesson]", error);
+    return undefined;
+  }
+}
+
+async function maybeStorePostIndex(
+  input: OrchestrateInput,
+  attemptNumber: number,
+  primaryVariant: LinkedInPost,
+  judged: JudgeOutput
+): Promise<string | undefined> {
+  try {
+    return await storePost({
+      sessionId: input.sessionId,
+      attemptNumber,
+      topic: input.topic,
+      niche: input.niche ?? input.brandProfile.niche,
+      post: primaryVariant,
+      judgeScore: judged.score,
+      judgeFeedback: judged.feedback,
+    });
+  } catch (error) {
+    console.error("[maybeStorePostIndex]", error);
+    return undefined;
+  }
 }
 
 export async function runOrchestratePostLoop(
@@ -268,6 +353,7 @@ export async function runOrchestratePostLoop(
   });
 
   let variants: LinkedInPost[];
+  let systemDiagram: SystemDiagram | undefined;
 
   if (format === "carousel") {
     const generated = await generateCarouselCore({
@@ -279,6 +365,19 @@ export async function runOrchestratePostLoop(
       slideCount: input.slideCount,
       scoreBefore: input.scoreBefore,
       portraitImageUrl: input.portraitImageUrl,
+      userFeedback: input.userFeedback,
+      judgeRevisionContext: input.judgeRevisionContext,
+    });
+    variants = generated.variants;
+  } else if (format === "diagram") {
+    const generated = await generatePostCore({
+      topic: input.topic,
+      brandProfile: input.brandProfile,
+      lessons,
+      attemptNumber,
+      postType,
+      format: "text",
+      scoreBefore: input.scoreBefore,
       userFeedback: input.userFeedback,
       judgeRevisionContext: input.judgeRevisionContext,
     });
@@ -313,6 +412,26 @@ export async function runOrchestratePostLoop(
     topic: input.topic,
   });
 
+  if (format === "diagram") {
+    const diagramResult = await generateSystemDiagram({
+      concept: input.topic,
+      context: `LinkedIn niche: ${input.brandProfile.niche}. Audience: ${input.brandProfile.audience}. Voice: ${input.brandProfile.voice}.`,
+    });
+    const diagramImage = await generateDiagramImage(diagramResult.diagram, {
+      brandName: input.brandProfile.name,
+    });
+    systemDiagram = diagramResult.diagram;
+    variants = variants.map((v, i) =>
+      i === 0
+        ? {
+            ...v,
+            format: "diagram",
+            image: diagramImage,
+          }
+        : v
+    );
+  }
+
   const attempt = {
     attemptNumber,
     topic: input.topic,
@@ -326,10 +445,19 @@ export async function runOrchestratePostLoop(
     scoreAfter: judged.score,
     weaveTraceId: process.env.WEAVE_PROJECT,
     branding: input.branding,
+    ...(systemDiagram ? { systemDiagram } : {}),
   };
+
+  const finalVariant = variants[0];
+  const [storedLesson, postIndexId] = await Promise.all([
+    maybeStoreRevisionLesson(input, judged),
+    maybeStorePostIndex(input, attemptNumber, finalVariant, judged),
+  ]);
 
   return {
     attempt,
     weaveTraceId: process.env.WEAVE_PROJECT,
+    storedLesson,
+    postIndexId,
   };
 }

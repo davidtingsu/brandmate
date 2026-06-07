@@ -2,11 +2,13 @@ import { EMBEDDING_DIMENSIONS } from "@/lib/config";
 import { embeddingToBuffer } from "@/lib/embeddings";
 import type { Lesson, PostType } from "@/lib/types";
 import { getRedis } from "./client";
+import { ensureLessonIndexVersion } from "./migrate-index";
 
 const INDEX_NAME = "idx:lessons";
 const KEY_PREFIX = "lesson:";
 
 export async function ensureLessonIndex(): Promise<void> {
+  await ensureLessonIndexVersion();
   const redis = await getRedis();
 
   try {
@@ -42,6 +44,10 @@ export async function ensureLessonIndex(): Promise<void> {
     "AS",
     "task_type",
     "TAG",
+    "$.judge_feedback",
+    "AS",
+    "judge_feedback",
+    "TEXT",
     "$.embedding",
     "AS",
     "embedding",
@@ -100,7 +106,17 @@ export async function searchMemories(
       PARAMS: { BLOB: vector },
       SORTBY: "score",
       DIALECT: 2,
-      RETURN: ["$.task", "$.niche", "$.post_type", "$.lesson", "$.score_before", "$.score_after", "$.human_feedback", "$.created_at"],
+      RETURN: [
+        "$.task",
+        "$.niche",
+        "$.post_type",
+        "$.lesson",
+        "$.score_before",
+        "$.score_after",
+        "$.human_feedback",
+        "$.judge_feedback",
+        "$.created_at",
+      ],
     }
   );
 
@@ -118,7 +134,8 @@ export async function searchMemories(
       score_after: values["$.score_after"]
         ? Number(values["$.score_after"])
         : undefined,
-      human_feedback: values["$.human_feedback"] as Lesson["human_feedback"],
+      human_feedback: values["$.human_feedback"] || undefined,
+      judge_feedback: values["$.judge_feedback"] || undefined,
       created_at: values["$.created_at"],
     };
   });

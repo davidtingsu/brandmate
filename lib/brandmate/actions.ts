@@ -19,6 +19,9 @@ export interface GeneratePostInput {
   imageUrl?: string;
   scoreBefore?: number;
   branding?: PostBrandingOptions;
+  sessionId?: string;
+  userFeedback?: string;
+  judgeRevisionContext?: string;
 }
 
 export interface GeneratePostResult {
@@ -61,6 +64,9 @@ export async function generatePost(
       imageUrl: input.imageUrl,
       scoreBefore: input.scoreBefore,
       branding: input.branding,
+      sessionId: input.sessionId,
+      userFeedback: input.userFeedback,
+      judgeRevisionContext: input.judgeRevisionContext,
     }),
   });
   if (!res.ok) {
@@ -120,7 +126,7 @@ export async function storeLesson(
   topic: string,
   lesson: string,
   scoreBefore: number,
-  humanFeedback?: HumanFeedbackType
+  humanFeedback?: string
 ): Promise<{ lesson: { lesson: string; score_before: number } }> {
   const res = await fetch("/api/memory/store", {
     method: "POST",

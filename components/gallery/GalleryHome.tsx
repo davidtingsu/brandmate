@@ -10,13 +10,27 @@ import { useEffect } from "react";
 
 export function GalleryHome() {
   const router = useRouter();
-  const { loading, loadSessions, loadSession } = useSessionLoader();
+  const { loading, loadSessions, loadSession, startNewDraft } =
+    useSessionLoader();
 
   useEffect(() => {
     void loadSessions();
   }, [loadSessions]);
 
+  useEffect(() => {
+    const onVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        void loadSessions();
+      }
+    };
+    document.addEventListener("visibilitychange", onVisibilityChange);
+    return () => {
+      document.removeEventListener("visibilitychange", onVisibilityChange);
+    };
+  }, [loadSessions]);
+
   const handleNewPost = () => {
+    startNewDraft();
     router.push("/create");
   };
 

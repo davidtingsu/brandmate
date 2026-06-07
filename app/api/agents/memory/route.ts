@@ -17,7 +17,7 @@ export async function POST(req: NextRequest) {
       const result = await runSummarizeLesson({
         topic: body.topic,
         judgeFeedback: body.judgeFeedback,
-        humanFeedback: body.humanFeedback as HumanFeedbackType,
+        humanFeedback: String(body.humanFeedback ?? ""),
         problems: body.problems ?? [],
         scoreBefore: body.scoreBefore,
       });
@@ -32,7 +32,8 @@ export async function POST(req: NextRequest) {
         score_before: body.score_before,
         score_after: body.score_after,
         post_type: body.post_type as PostType | undefined,
-        human_feedback: body.human_feedback as HumanFeedbackType | undefined,
+        human_feedback: body.human_feedback as string | undefined,
+        judge_feedback: body.judge_feedback as string | undefined,
       });
       return NextResponse.json({ lesson });
     }

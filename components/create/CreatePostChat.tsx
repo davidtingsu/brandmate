@@ -23,7 +23,7 @@ import { CopilotKit } from "@copilotkit/react-core";
 import { CopilotChat } from "@copilotkit/react-ui";
 import Image from "next/image";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 const STAGE_CHAT_LABELS: Record<
   StudioFlowStage,
@@ -48,7 +48,9 @@ function CreatePostChatInner({
 }) {
   const { stage, lastAttempt } = useCreateFlow();
   const postActions = usePostActions();
-  useGenerativeUI();
+  useGenerativeUI({
+    isGenerating: Boolean(postActions.generationPreview?.active),
+  });
 
   const labels = STAGE_CHAT_LABELS[stage];
   const suggestions = useMemo(() => {
@@ -91,10 +93,12 @@ function CreatePostChatContent() {
   const searchParams = useSearchParams();
   const sessionParam = searchParams.get("session");
   const { hasProfile } = useBrandProfile();
-  const { copilotThreadId, loading: sessionsLoading } = useChatSessionContext();
+  const { copilotThreadId, sessionsLoadedOnce } = useChatSessionContext();
   const { loadSession, ensureSession, loadSessions } = useSessionLoader();
   const { hydrateFromMessages } = useCreateFlow();
   const [ready, setReady] = useState(false);
+  const prevSessionParamRef = useRef<string | null>(null);
+  const isReadyRef = useRef(false);
 
   const handleChatStarted = useCallback(async () => {
     const sessionId = await ensureSession();
@@ -110,11 +114,19 @@ function CreatePostChatContent() {
   }, [hasProfile, router]);
 
   useEffect(() => {
+    const prev = prevSessionParamRef.current;
+    const skipHydrate = !prev && sessionParam && isReadyRef.current;
+    prevSessionParamRef.current = sessionParam;
+
+    if (skipHydrate) {
+      return;
+    }
+
     let cancelled = false;
 
     void (async () => {
       setReady(false);
-      if (sessionsLoading) {
+      if (!sessionsLoadedOnce) {
         await loadSessions();
       }
 
@@ -129,6 +141,7 @@ function CreatePostChatContent() {
 
       if (!cancelled) {
         setReady(true);
+        isReadyRef.current = true;
       }
     })();
 
@@ -139,7 +152,7 @@ function CreatePostChatContent() {
     sessionParam,
     loadSession,
     loadSessions,
-    sessionsLoading,
+    sessionsLoadedOnce,
     hydrateFromMessages,
     router,
   ]);

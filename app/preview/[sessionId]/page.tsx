@@ -9,7 +9,12 @@ import {
   findLatestPostAttempt,
   resolvePreviewBrandProfile,
 } from "@/lib/sessions/approved-post";
-import type { BrandProfile, ChatMessage } from "@/lib/types";
+import type {
+  BrandProfile,
+  ChatMessage,
+  Lesson,
+  SimilarPost,
+} from "@/lib/types";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -30,6 +35,8 @@ export default function PreviewPage() {
   const [branding, setBranding] = useState<
     import("@/lib/types").PostBrandingOptions | undefined
   >();
+  const [lessons, setLessons] = useState<Lesson[]>([]);
+  const [similarPosts, setSimilarPosts] = useState<SimilarPost[]>([]);
 
   useEffect(() => {
     void (async () => {
@@ -58,14 +65,59 @@ export default function PreviewPage() {
           source.attempt.variants[variantIndex] ??
           source.attempt.variants[0];
 
+        const resolvedTopic = source.attempt.topic;
+        const resolvedNiche = loadedProfile.niche;
+        const postType = variant.postType;
+
         setProfile(loadedProfile);
         setPost(variant);
-        setTopic(source.attempt.topic);
+        setTopic(resolvedTopic);
         setBranding(
           approved?.branding ??
             source.attempt.branding ??
             undefined
         );
+
+        const [lessonsRes, postsRes] = await Promise.all([
+          fetch("/api/memory/search", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              query: resolvedTopic,
+              niche: resolvedNiche,
+              postType,
+            }),
+          }).catch(() => null),
+          fetch("/api/memory/search-posts", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              topic: resolvedTopic,
+              hook: variant.hook,
+              body: variant.body,
+              niche: resolvedNiche,
+              excludeSessionId: sessionId,
+            }),
+          }).catch(() => null),
+        ]);
+
+        if (lessonsRes?.ok) {
+          const data = (await lessonsRes.json()) as { lessons?: Lesson[] };
+          setLessons(data.lessons ?? []);
+        } else {
+          setLessons([]);
+        }
+
+        if (postsRes?.ok) {
+          const data = (await postsRes.json()) as {
+            similarPosts?: SimilarPost[];
+          };
+          setSimilarPosts(
+            (data.similarPosts ?? []).filter((p) => p.sessionId)
+          );
+        } else {
+          setSimilarPosts([]);
+        }
       } catch (err) {
         setError(err instanceof Error ? err.message : "Failed to load preview");
       } finally {
@@ -99,6 +151,8 @@ export default function PreviewPage() {
       post={post}
       topic={topic}
       branding={branding}
+      lessons={lessons}
+      similarPosts={similarPosts}
     />
   );
 }

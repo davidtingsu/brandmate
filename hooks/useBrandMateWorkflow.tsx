@@ -163,6 +163,7 @@ export function BrandMateWorkflowProvider({
           includeImage: values.includeImage,
           slideCount: values.slideCount,
           branding: values.branding,
+          sessionId: activeSessionId ?? undefined,
         });
 
         setLastAttempt(data.attempt);

@@ -83,9 +83,9 @@ export function GuidedStepInline() {
           hasHandle={Boolean(brandProfile.handle?.trim())}
           hasProfileImage={Boolean(brandProfile.profileImageUrl)}
           loading={generating}
-          initialValues={formInitialValues}
-          submitDisabled={hasExistingDraft}
-          readOnly={hasExistingDraft}
+          initialValues={isGenerating ? undefined : formInitialValues}
+          submitDisabled={hasExistingDraft && !isGenerating}
+          readOnly={hasExistingDraft && !isGenerating}
           onSubmit={handleGenerateSubmit}
         />
         {generationPreview?.active && (
@@ -103,7 +103,7 @@ export function GuidedStepInline() {
               brandProfile={brandProfile}
             />
             {renderAttemptCards(lastAttempt, lastWeaveTraceId, {
-              showFeedback: true,
+              showFeedback: false,
               showPreviewCta: false,
             })}
             <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">

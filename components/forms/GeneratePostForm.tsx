@@ -55,7 +55,7 @@ export function GeneratePostForm({
   const fieldsDisabled = loading || readOnly;
 
   useEffect(() => {
-    if (!initialValues) return;
+    if (!initialValues || loading) return;
     if (initialValues.topic !== undefined) setTopic(initialValues.topic);
     if (initialValues.slideCount !== undefined) {
       setSlideCount(initialValues.slideCount);
@@ -70,7 +70,7 @@ export function GeneratePostForm({
       );
     }
     setFormat(toFormFormat(initialValues));
-  }, [initialValues]);
+  }, [initialValues, loading]);
 
   const showBrandingToggles = format === "carousel" || format === "image";
   const brandingTarget = format === "carousel" ? "slides" : "image";

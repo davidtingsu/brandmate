@@ -75,8 +75,26 @@ export interface Lesson {
   lesson: string;
   score_before: number;
   score_after?: number;
-  human_feedback?: HumanFeedbackType;
+  /** Free-text chat revision from the user */
+  human_feedback?: string;
+  /** Judge revision context or feedback copied at store time */
+  judge_feedback?: string;
   created_at?: string;
+}
+
+export interface SimilarPost {
+  id: string;
+  sessionId: string;
+  topic: string;
+  hook: string;
+  body?: string;
+  previewImageUrl?: string;
+  previewText?: string;
+  niche: string;
+  postType?: PostType;
+  format?: PostFormat;
+  judgeScore?: number;
+  createdAt?: string;
 }
 
 export interface JudgeBreakdown {
@@ -159,7 +177,7 @@ export interface JudgeOutput {
 export interface SummarizeLessonInput {
   topic: string;
   judgeFeedback: string;
-  humanFeedback: HumanFeedbackType;
+  humanFeedback: string;
   problems: string[];
   scoreBefore: number;
 }
@@ -186,6 +204,7 @@ export interface OrchestrateInput {
   branding?: PostBrandingOptions;
   userFeedback?: string;
   judgeRevisionContext?: string;
+  sessionId?: string;
 }
 
 export interface CarouselRenderInput {
@@ -208,6 +227,8 @@ export interface CarouselRenderProgressEvent {
 export interface OrchestrateOutput {
   attempt: PostAttempt;
   weaveTraceId?: string;
+  storedLesson?: Lesson;
+  postIndexId?: string;
 }
 
 export interface ChatThread {

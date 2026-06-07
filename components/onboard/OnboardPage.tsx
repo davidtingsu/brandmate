@@ -4,12 +4,15 @@ import { BrandHeader } from "@/components/BrandHeader";
 import { ProfileForm } from "@/components/forms/ProfileForm";
 import { useBrandProfile } from "@/contexts/BrandProfileContext";
 import {
+  isProfileComplete,
+  loadStoredProfile,
   saveStoredProfile,
   setOnboardedCookie,
 } from "@/lib/brand-profile-storage";
 import type { BrandProfile } from "@/lib/types";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
+import { useEffect, useState } from "react";
 
 export function OnboardPage() {
   const { brandProfile, setBrandProfile } = useBrandProfile();
@@ -17,6 +20,21 @@ export function OnboardPage() {
   const searchParams = useSearchParams();
   const isEdit = searchParams.get("edit") === "1";
   const returnTo = searchParams.get("return") ?? "/";
+  const [checkingStoredProfile, setCheckingStoredProfile] = useState(!isEdit);
+
+  useEffect(() => {
+    if (isEdit) return;
+
+    const stored = loadStoredProfile();
+    if (stored && isProfileComplete(stored)) {
+      setBrandProfile(stored);
+      setOnboardedCookie();
+      router.replace(returnTo.startsWith("/") ? returnTo : "/");
+      return;
+    }
+
+    setCheckingStoredProfile(false);
+  }, [isEdit, returnTo, router, setBrandProfile]);
 
   const handleSubmit = async (profile: BrandProfile) => {
     setBrandProfile(profile);
@@ -30,6 +48,14 @@ export function OnboardPage() {
 
     router.replace(returnTo.startsWith("/") ? returnTo : "/");
   };
+
+  if (checkingStoredProfile) {
+    return (
+      <main className="flex min-h-screen items-center justify-center text-sm text-slate-500">
+        Loading…
+      </main>
+    );
+  }
 
   return (
     <main

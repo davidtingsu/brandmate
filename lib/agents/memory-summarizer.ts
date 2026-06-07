@@ -48,7 +48,8 @@ export async function runStoreLesson(input: {
   score_before: number;
   score_after?: number;
   post_type?: import("@/lib/types").PostType;
-  human_feedback?: HumanFeedbackType;
+  human_feedback?: string;
+  judge_feedback?: string;
 }): Promise<Lesson> {
   return withWeaveFallback(
     () => storeLessonOp(input),

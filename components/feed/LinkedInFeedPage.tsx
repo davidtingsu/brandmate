@@ -1,7 +1,15 @@
 "use client";
 
 import { LinkedInFeedPost } from "@/components/feed/LinkedInFeedPost";
-import type { BrandProfile, LinkedInPost, PostBrandingOptions } from "@/lib/types";
+import { RetrievedLessonsSection } from "@/components/feed/RetrievedLessonsSection";
+import { SimilarPostsSection } from "@/components/feed/SimilarPostsSection";
+import type {
+  BrandProfile,
+  Lesson,
+  LinkedInPost,
+  PostBrandingOptions,
+  SimilarPost,
+} from "@/lib/types";
 import { useRouter } from "next/navigation";
 
 interface LinkedInFeedPageProps {
@@ -9,6 +17,8 @@ interface LinkedInFeedPageProps {
   post: LinkedInPost;
   topic?: string;
   branding?: PostBrandingOptions;
+  lessons?: Lesson[];
+  similarPosts?: SimilarPost[];
 }
 
 export function LinkedInFeedPage({
@@ -16,6 +26,8 @@ export function LinkedInFeedPage({
   post,
   topic,
   branding,
+  lessons = [],
+  similarPosts = [],
 }: LinkedInFeedPageProps) {
   const router = useRouter();
 
@@ -34,13 +46,17 @@ export function LinkedInFeedPage({
         </div>
       </header>
 
-      <main className="mx-auto max-w-[555px] px-2 py-4">
-        <LinkedInFeedPost
-          post={post}
-          profile={profile}
-          topic={topic}
-          branding={branding}
-        />
+      <main className="mx-auto max-w-5xl px-4 py-4">
+        <div className="mx-auto max-w-[555px]">
+          <LinkedInFeedPost
+            post={post}
+            profile={profile}
+            topic={topic}
+            branding={branding}
+          />
+        </div>
+        <RetrievedLessonsSection lessons={lessons} topic={topic} />
+        <SimilarPostsSection similarPosts={similarPosts} />
       </main>
     </div>
   );

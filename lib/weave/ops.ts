@@ -47,7 +47,8 @@ export const storeLessonOp = weave.op(async function storeLessonOp(input: {
   score_before: number;
   score_after?: number;
   post_type?: PostType;
-  human_feedback?: HumanFeedbackType;
+  human_feedback?: string;
+  judge_feedback?: string;
 }) {
   await ensureWeave();
   return storeLessonCore(input);

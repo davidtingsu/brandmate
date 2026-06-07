@@ -26,16 +26,12 @@ Open http://localhost:3000
 4. Ask to generate a post — **GeneratePostForm** appears (Text / Post with Image / Carousel).
 
 5. Watch generative cards:
-   - **MemoryListCard**
    - **PostCard** with LinkedIn **Preview** tab + Variant A/B
    - **JudgeBreakdown**
-   - **HumanFeedbackButtons**
 
-6. Click feedback (e.g. **Too generic**) → **LessonCard** → **Store lesson**.
+6. Click **Preview in feed** → **`/preview/[sessionId]`** (LinkedIn feed mock + similar posts grid when Redis has matches).
 
-7. Click **Preview in feed** → **`/preview/[sessionId]`** (LinkedIn center column, no chat).
-
-8. Click **Exit preview** → back to gallery.
+7. Click **Exit preview** → back to gallery.
 
 ## Act 2 — Concept diagram (diagram_explainer)
 
@@ -45,9 +41,9 @@ Open http://localhost:3000
 
 ## Act 3 — Retry + memory
 
-> Retry the same topic
+> Retry the same topic with a chat note (e.g. "shorten the hook")
 
-Coach calls `retryWithLesson` → improved **PostCard** (~8/10), **MemoryListCard** shows retrieved lesson.
+Coach calls `retryWithJudgeFeedback` with `userFeedback` → improved **PostCard**, lesson auto-stored in Redis. On **Preview in feed**, retrieved lessons and similar posts appear only when vector search returns matches.
 
 ## Act 4 — Weave dashboard
 

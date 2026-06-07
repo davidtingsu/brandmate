@@ -69,8 +69,8 @@ export function usePostActions() {
   } = useCarouselRender();
   const router = useRouter();
   const { brandProfile, setBrandProfile } = useBrandProfile();
-  const { persistAttempt, sessionsEnabled, setThreads } = useChatSessionContext();
-  const { ensureSession } = useSessionLoader();
+  const { persistAttempt, setThreads } = useChatSessionContext();
+  const { ensureSession, loadSessions } = useSessionLoader();
   const { lastAttempt, setLastAttempt } = useCreateFlow();
 
   const lastAttemptRef = useRef<PostAttempt | null>(null);
@@ -146,7 +146,7 @@ export function usePostActions() {
   const persistProfile = useCallback(
     async (profile: BrandProfile) => {
       const sessionId = await ensureSession();
-      if (!sessionId || !sessionsEnabled) return;
+      if (!sessionId) return;
       await fetch(`/api/sessions/${sessionId}/messages`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -157,13 +157,13 @@ export function usePostActions() {
         }),
       });
     },
-    [ensureSession, sessionsEnabled]
+    [ensureSession]
   );
 
   const persistApprovedPost = useCallback(
     async (attempt: PostAttempt, variantIndex = 0) => {
       const sessionId = await ensureSession();
-      if (!sessionId || !sessionsEnabled) return;
+      if (!sessionId) return;
       await fetch(`/api/sessions/${sessionId}/messages`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -181,7 +181,7 @@ export function usePostActions() {
       });
       return sessionId;
     },
-    [ensureSession, sessionsEnabled]
+    [ensureSession]
   );
 
   const handlePreviewInFeed = useCallback(async () => {
@@ -290,9 +290,6 @@ export function usePostActions() {
         resetCarouselRender();
       }
 
-      const orchestrateFormat: PostFormat =
-        postFormat === "diagram" ? "text" : postFormat;
-
       const portraitImageUrl =
         params.portraitImageUrl ??
         (postFormat === "carousel" ? lastPortraitImageUrlRef.current : undefined) ??
@@ -311,7 +308,7 @@ export function usePostActions() {
           brandProfile: profile,
           attemptNumber: attemptCounterRef.current,
           postType: params.postType ?? "story",
-          format: orchestrateFormat,
+          format: postFormat,
           includeImage: params.includeImage ?? false,
           imageStyle: params.imageStyle,
           slideCount: params.slideCount,
@@ -385,69 +382,48 @@ export function usePostActions() {
         };
       }
 
-      if (postFormat === "diagram") {
-        setGenerationPreview((prev) =>
-          prev ? { ...prev, phase: "diagram" } : prev
-        );
-        const diagramRes = await fetch("/api/agents/diagram", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            concept: params.topic,
-            context: `LinkedIn niche: ${profile.niche}. Audience: ${profile.audience}. Voice: ${profile.voice}.`,
-            brandName: profile.name,
-          }),
-        });
-        if (!diagramRes.ok) {
-          const err = await diagramRes.json().catch(() => ({}));
-          throw new Error(
-            (err as { error?: string }).error ?? "Diagram generation failed"
-          );
-        }
-        const diagramData = (await diagramRes.json()) as {
-          diagram: PostAttempt["systemDiagram"];
-          imageUrl: string;
-        };
-        attempt = {
-          ...attempt,
-          systemDiagram: diagramData.diagram,
-          variants: attempt.variants.map((v, i) => ({
-            ...v,
-            format: "diagram" as PostFormat,
-            image:
-              i === 0 && diagramData.imageUrl
-                ? {
-                    url: diagramData.imageUrl,
-                    alt: diagramData.diagram?.title ?? "System diagram",
-                    aspectRatio: "1.91:1" as const,
-                    source: "generated" as const,
-                  }
-                : v.image,
-          })),
-        };
-      }
-
       lastAttemptRef.current = attempt;
       setLastAttempt(attempt, data.weaveTraceId as string | undefined);
-      const sessionId = await ensureSession();
       await persistProfile(profile);
-      await persistAttempt(
+      const sessionId = await ensureSession();
+      if (!sessionId) {
+        throw new Error(
+          "Post generated but could not be saved to your gallery. Retry or check Supabase connection."
+        );
+      }
+      const persistResult = await persistAttempt(
         {
           attempt,
           weaveTraceId: data.weaveTraceId,
         },
-        sessionId ?? undefined
+        sessionId
       );
-
-      if (sessionId && sessionsEnabled) {
-        const title = summarizePostTitle(params.topic);
-        await updatePostTitle(sessionId, title);
-        setThreads((prev) =>
-          prev.map((t) =>
-            t.id === sessionId ? { ...t, title, displayTitle: title } : t
-          )
+      if (!persistResult?.messageId) {
+        throw new Error(
+          "Post generated but could not be saved to your gallery. Retry or check Supabase connection."
         );
       }
+
+      void fetch("/api/memory/posts/link", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          sessionId,
+          attemptNumber: attempt.attemptNumber,
+          messageId: persistResult.messageId,
+        }),
+      }).catch(() => undefined);
+
+      const title = summarizePostTitle(params.topic);
+      await updatePostTitle(sessionId, title);
+      setThreads((prev) => {
+        const exists = prev.some((t) => t.id === sessionId);
+        if (!exists) return prev;
+        return prev.map((t) =>
+          t.id === sessionId ? { ...t, title, displayTitle: title } : t
+        );
+      });
+      await loadSessions({ silent: true });
 
       lastGenerateParamsRef.current = {
         topic: params.topic,
@@ -471,9 +447,9 @@ export function usePostActions() {
     [
       ensureProfile,
       ensureSession,
+      loadSessions,
       persistProfile,
       persistAttempt,
-      sessionsEnabled,
       setLastAttempt,
       setThreads,
       streamRender,
@@ -613,7 +589,7 @@ export function usePostActions() {
       return renderAttemptCards(
         attempt,
         result.weaveTraceId as string | undefined,
-        { showFeedback: true, showPreviewCta: false }
+        { showFeedback: false, showPreviewCta: false }
       );
     },
   });
@@ -804,7 +780,7 @@ export function usePostActions() {
       return renderAttemptCards(
         attempt,
         result.weaveTraceId as string | undefined,
-        { showFeedback: true, showPreviewCta: false }
+        { showFeedback: false, showPreviewCta: false }
       );
     },
   });
@@ -846,7 +822,7 @@ export function usePostActions() {
       return renderAttemptCards(
         attempt,
         result.weaveTraceId as string | undefined,
-        { showFeedback: true, showPreviewCta: false }
+        { showFeedback: false, showPreviewCta: false }
       );
     },
   });

@@ -23,12 +23,13 @@ export async function POST(req: NextRequest) {
       branding,
       userFeedback,
       judgeRevisionContext,
+      sessionId,
     }: {
       topic: string;
       brandProfile: BrandProfile;
       attemptNumber?: number;
       postType?: PostType;
-      format?: "text" | "carousel";
+      format?: "text" | "carousel" | "diagram";
       includeImage?: boolean;
       imageStyle?: string;
       imageUrl?: string;
@@ -38,6 +39,7 @@ export async function POST(req: NextRequest) {
       branding?: PostBrandingOptions;
       userFeedback?: string;
       judgeRevisionContext?: string;
+      sessionId?: string;
     } = body;
 
     if (!topic || !brandProfile?.name) {
@@ -62,6 +64,7 @@ export async function POST(req: NextRequest) {
       branding,
       userFeedback,
       judgeRevisionContext,
+      sessionId,
     });
 
     return NextResponse.json(result);

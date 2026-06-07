@@ -30,9 +30,10 @@ const STAGE_INSTRUCTIONS = {
 - Encourage them to preview in the LinkedIn feed. Do not start new generation.`,
 } as const;
 
-export function useGenerativeUI() {
+export function useGenerativeUI(options?: { isGenerating?: boolean }) {
   const { brandProfile } = useBrandProfile();
   const { stage, lastAttempt } = useCreateFlow();
+  const isGenerating = Boolean(options?.isGenerating);
   const hasExistingDraft = Boolean(lastAttempt?.variants?.length);
   const formInitialValues = useMemo(
     () =>
@@ -68,9 +69,9 @@ export function useGenerativeUI() {
           hasProfile={hasProfile}
           hasHandle={Boolean(brandProfile.handle?.trim())}
           hasProfileImage={Boolean(brandProfile.profileImageUrl)}
-          initialValues={formInitialValues}
-          submitDisabled={hasExistingDraft}
-          readOnly={hasExistingDraft}
+          initialValues={isGenerating ? undefined : formInitialValues}
+          submitDisabled={hasExistingDraft && !isGenerating}
+          readOnly={hasExistingDraft && !isGenerating}
           onSubmit={async (values) => {
             respond(values);
           }}
