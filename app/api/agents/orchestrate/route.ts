@@ -13,12 +13,22 @@ export async function POST(req: NextRequest) {
       brandProfile,
       attemptNumber,
       postType,
+      format,
+      includeImage,
+      imageStyle,
+      imageUrl,
+      slideCount,
       scoreBefore,
     }: {
       topic: string;
       brandProfile: BrandProfile;
       attemptNumber?: number;
       postType?: PostType;
+      format?: "text" | "carousel";
+      includeImage?: boolean;
+      imageStyle?: string;
+      imageUrl?: string;
+      slideCount?: number;
       scoreBefore?: number;
     } = body;
 
@@ -34,6 +44,11 @@ export async function POST(req: NextRequest) {
       brandProfile,
       attemptNumber,
       postType,
+      format,
+      includeImage,
+      imageStyle,
+      imageUrl,
+      slideCount,
       scoreBefore,
     });
 

@@ -1,5 +1,7 @@
 import { embedText } from "@/lib/embeddings";
 import { MAX_LESSONS_IN_PROMPT, MAX_TOKENS } from "@/lib/config";
+import { generateCarouselCore } from "@/lib/pipeline/carousel-gen";
+import { generatePostImageCore } from "@/lib/pipeline/image-gen";
 import { buildLinkedInPost } from "@/lib/linkedin-format";
 import { searchMemories } from "@/lib/redis/vector-search";
 import { storeLesson as storeLessonInRedis } from "@/lib/redis/lesson-store";
@@ -10,8 +12,11 @@ import type {
   JudgeInput,
   JudgeOutput,
   Lesson,
+  LinkedInPost,
   OrchestrateInput,
   OrchestrateOutput,
+  PostFormat,
+  PostImage,
   PostType,
   SummarizeLessonInput,
   SummarizeLessonOutput,
@@ -47,6 +52,7 @@ export async function generatePostCore(
 ): Promise<GenerateOutput> {
   const openai = getOpenAI();
   const postType = input.postType ?? "story";
+  const format: PostFormat = input.format ?? "text";
   const lessonsText =
     input.lessons.length > 0
       ? input.lessons.map((l, i) => `${i + 1}. ${l.lesson}`).join("\n")
@@ -64,7 +70,7 @@ export async function generatePostCore(
     messages: [
       {
         role: "system",
-        content: `You write LinkedIn posts for personal brand growth. Return JSON: { "variants": [ { "hook", "body", "cta", "hashtags": string[], "postType" } ] } with exactly 2 variants (A/B). Post type: ${postType}. Keep under 1300 chars each. Apply learned lessons.`,
+        content: `You write LinkedIn text posts for personal brand growth. Return JSON: { "variants": [ { "hook", "body", "cta", "hashtags": string[], "postType" } ] } with exactly 2 variants (A/B). Post type: ${postType}. Keep under 1300 chars each. Apply learned lessons.`,
       },
       {
         role: "user",
@@ -98,15 +104,28 @@ ${lessonsText}`,
       cta: v.cta,
       hashtags: v.hashtags,
       postType: v.postType ?? postType,
+      format,
     })
   );
 
-  return { variants, attemptNumber: input.attemptNumber, postType };
+  return { variants, attemptNumber: input.attemptNumber, postType, format };
 }
 
 export async function judgePostCore(input: JudgeInput): Promise<JudgeOutput> {
   const openai = getOpenAI();
-  const postText = `${input.post.hook}\n\n${input.post.body}\n\n${input.post.cta}`;
+  const post = input.post;
+  let postText = `${post.hook}\n\n${post.body}\n\n${post.cta}`;
+
+  if (post.format === "carousel" && post.slides?.length) {
+    const slideSummary = post.slides
+      .map((s) => `${s.index + 1}. ${s.title}: ${s.body}`)
+      .join("\n");
+    postText += `\n\nCarousel slides:\n${slideSummary}`;
+  }
+
+  const imageNote = post.image
+    ? "\nNote: This post includes an image attachment."
+    : "";
 
   const response = await openai.chat.completions.create({
     model: MODEL,
@@ -115,13 +134,15 @@ export async function judgePostCore(input: JudgeInput): Promise<JudgeOutput> {
     messages: [
       {
         role: "system",
-        content: `You judge LinkedIn posts for personal brand growth. Return JSON: { "score": number (1-10), "breakdown": { "hook_strength", "voice_authenticity", "audience_fit", "engagement_potential", "brand_alignment" }, "problems": string[], "feedback": string }. Weights: hook 25%, voice 25%, audience 20%, engagement 15%, brand 15%.`,
+        content: `You judge LinkedIn posts for personal brand growth. Return JSON: { "score": number (1-10), "breakdown": { "hook_strength", "voice_authenticity", "audience_fit", "engagement_potential", "brand_alignment" }, "problems": string[], "feedback": string }. Weights: hook 25%, voice 25%, audience 20%, engagement 15%, brand 15%. For carousels, also consider slide flow and cover hook.`,
       },
       {
         role: "user",
         content: `Topic: ${input.topic}
+Format: ${post.format}
 Brand voice: ${input.brandProfile.voice}
 Audience: ${input.brandProfile.audience}
+${imageNote}
 
 Post:
 ${postText}`,
@@ -132,6 +153,40 @@ ${postText}`,
   return parseJson<JudgeOutput>(
     response.choices[0]?.message?.content ??
       '{"score":5,"breakdown":{"hook_strength":5,"voice_authenticity":5,"audience_fit":5,"engagement_potential":5,"brand_alignment":5},"problems":[],"feedback":""}'
+  );
+}
+
+async function attachImageToVariants(
+  variants: LinkedInPost[],
+  input: OrchestrateInput,
+  imageUrl?: string
+): Promise<LinkedInPost[]> {
+  if (variants.length === 0) return variants;
+
+  let image: PostImage | undefined;
+
+  if (imageUrl) {
+    image = {
+      url: imageUrl,
+      alt: `Image for: ${input.topic}`,
+      aspectRatio: "1.91:1",
+      source: "uploaded",
+    };
+  } else if (input.includeImage) {
+    const primary = variants[0];
+    image = await generatePostImageCore({
+      topic: input.topic,
+      hook: primary.hook,
+      body: primary.body,
+      brandProfile: input.brandProfile,
+      imageStyle: input.imageStyle,
+    });
+  }
+
+  if (!image) return variants;
+
+  return variants.map((v, i) =>
+    i === 0 ? { ...v, image } : v
   );
 }
 
@@ -186,6 +241,7 @@ export async function runOrchestratePostLoop(
   const attemptNumber = input.attemptNumber ?? 1;
   const niche = input.niche ?? input.brandProfile.niche;
   const postType = input.postType ?? "story";
+  const format: PostFormat = input.format ?? "text";
 
   const { lessons } = await searchMemoriesForTopic({
     query: input.topic,
@@ -193,16 +249,37 @@ export async function runOrchestratePostLoop(
     postType,
   });
 
-  const generated = await generatePostCore({
-    topic: input.topic,
-    brandProfile: input.brandProfile,
-    lessons,
-    attemptNumber,
-    postType,
-    scoreBefore: input.scoreBefore,
-  });
+  let variants: LinkedInPost[];
 
-  const primaryVariant = generated.variants[0];
+  if (format === "carousel") {
+    const generated = await generateCarouselCore({
+      topic: input.topic,
+      brandProfile: input.brandProfile,
+      lessons,
+      attemptNumber,
+      postType,
+      slideCount: input.slideCount,
+      scoreBefore: input.scoreBefore,
+    });
+    variants = generated.variants;
+  } else {
+    const generated = await generatePostCore({
+      topic: input.topic,
+      brandProfile: input.brandProfile,
+      lessons,
+      attemptNumber,
+      postType,
+      format: "text",
+      scoreBefore: input.scoreBefore,
+    });
+    variants = await attachImageToVariants(
+      generated.variants,
+      input,
+      input.imageUrl
+    );
+  }
+
+  const primaryVariant = variants[0];
   if (!primaryVariant) {
     throw new Error("Generator returned no variants");
   }
@@ -216,7 +293,7 @@ export async function runOrchestratePostLoop(
   const attempt = {
     attemptNumber,
     topic: input.topic,
-    variants: generated.variants,
+    variants,
     judgeScore: judged.score,
     problems: judged.problems,
     breakdown: judged.breakdown,
