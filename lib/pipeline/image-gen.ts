@@ -22,6 +22,7 @@ export async function generatePostImageCore(input: {
     prompt,
     n: 1,
     size: "1536x1024",
+    quality: "high",
   });
 
   const b64 = response.data?.[0]?.b64_json;

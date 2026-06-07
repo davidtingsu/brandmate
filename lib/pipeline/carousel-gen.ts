@@ -31,7 +31,7 @@ export async function generateCarouselCore(
       : "";
 
   const portraitContext = input.portraitImageUrl
-    ? "A portrait photo is provided. Choose per-slide layout dynamically. Slide images will composite the uploaded portrait unchanged — copy should assume the author's real photo appears as-is on portrait slides."
+    ? "A portrait photo is provided. Choose per-slide layout dynamically. Slide images use gpt-image-2 compositing (reference + portrait, high input fidelity) to preserve the author's likeness — copy should assume the author's real photo appears on portrait slides."
     : "No portrait photo — use template_content and split_before_after for all slides.";
 
   const tokenBudget = modelTokenBudget(CAROUSEL_MODEL, "carousel");

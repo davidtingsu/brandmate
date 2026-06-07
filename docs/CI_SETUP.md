@@ -44,7 +44,7 @@ Repo → **Settings** → **Secrets and variables** → **Actions** → **New re
 | `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | `sb_publishable_...` | Yes (sessions) |
 | `SUPABASE_SECRET_KEY` | `sb_secret_...` | Yes (sessions) |
 | `SUPABASE_STORAGE_BUCKET` | `post-images` | Optional |
-| `OPENAI_IMAGE_MODEL` | `gpt-image-1` | Optional |
+| `OPENAI_IMAGE_MODEL` | `gpt-image-2` | Optional |
 
 **Important:** `REDIS_URL` in GitHub must be your **Redis Cloud** URL, not `localhost`. Use Supabase **API Keys** tab (publishable + secret), not legacy anon/service_role.
 

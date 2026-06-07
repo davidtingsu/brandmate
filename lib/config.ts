@@ -59,7 +59,11 @@ export const CAROUSEL_HANDWRITTEN_FONT =
 export const CAROUSEL_EXAMPLE_PORTRAIT =
   "/examples/carousel-portrait-example.jpg";
 
-export const IMAGE_MODEL = process.env.OPENAI_IMAGE_MODEL ?? "gpt-image-1";
+export const IMAGE_MODEL = process.env.OPENAI_IMAGE_MODEL ?? "gpt-image-2";
+
+/** Carousel slide images.edit — inherits IMAGE_MODEL; gpt-image-2 uses automatic high input fidelity */
+export const CAROUSEL_IMAGE_MODEL =
+  process.env.OPENAI_CAROUSEL_IMAGE_MODEL ?? IMAGE_MODEL;
 export const SUPABASE_STORAGE_BUCKET =
   process.env.SUPABASE_STORAGE_BUCKET ?? "post-images";
 
