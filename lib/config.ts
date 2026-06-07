@@ -3,6 +3,10 @@
  * NEVER change MODEL to gpt-4o (see README budget section).
  */
 export const MODEL = process.env.OPENAI_MODEL ?? "gpt-4o-mini";
+
+/** Carousel copy + judge — GPT-5.5 by default; override with OPENAI_CAROUSEL_MODEL */
+export const CAROUSEL_MODEL =
+  process.env.OPENAI_CAROUSEL_MODEL ?? "gpt-5.5";
 export const EMBEDDING_MODEL =
   process.env.OPENAI_EMBEDDING_MODEL ?? "text-embedding-3-small";
 export const EMBEDDING_DIMENSIONS = 1536;

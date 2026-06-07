@@ -6,7 +6,7 @@ import {
 } from "@/lib/config";
 import { buildCarouselSlides, buildLinkedInPost } from "@/lib/linkedin-format";
 import type { CarouselGenerateInput, CarouselGenerateOutput } from "@/lib/types";
-import { getOpenAI, MODEL } from "@/lib/weave/openai";
+import { CAROUSEL_MODEL, getOpenAI } from "@/lib/weave/openai";
 
 async function parseJson<T>(content: string): Promise<T> {
   const cleaned = content.replace(/```json\n?|\n?```/g, "").trim();
@@ -38,7 +38,7 @@ export async function generateCarouselCore(
     : "No portrait photo — use template_content and split_before_after for all slides.";
 
   const response = await openai.chat.completions.create({
-    model: MODEL,
+    model: CAROUSEL_MODEL,
     max_tokens: MAX_TOKENS.carousel,
     response_format: { type: "json_object" },
     messages: [

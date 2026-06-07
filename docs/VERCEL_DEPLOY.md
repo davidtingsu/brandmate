@@ -17,6 +17,7 @@ Set in Vercel → Settings → Environment Variables (Production):
 | `WANDB_API_KEY` | Your W&B key |
 | `WEAVE_PROJECT` | e.g. `your-username/brandmate` |
 | `OPENAI_MODEL` | `gpt-4o-mini` |
+| `OPENAI_CAROUSEL_MODEL` | `gpt-5.5` (carousel copy + judge) |
 | `OPENAI_EMBEDDING_MODEL` | `text-embedding-3-small` |
 
 Or use GitHub Actions secrets + `.github/workflows/deploy.yml` (see [CI_SETUP.md](CI_SETUP.md)).

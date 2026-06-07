@@ -11,7 +11,7 @@
 - REQ-CREATE-010 — ProfileForm collapses to BrandProfileCard after save
 - REQ-CREATE-011 — BrandProfileCard above GeneratePostForm on Step 2
 - REQ-CHIPS-001 through REQ-CHIPS-005 — stage chips + chips-only input
-- REQ-CAROUSEL-IMG-001 through REQ-CAROUSEL-IMG-008 — image carousel PNG render, portrait input, progress UI
+- REQ-CAROUSEL-IMG-001 through REQ-CAROUSEL-IMG-009 — image carousel PNG render, portrait input, progress UI, premium CAROUSEL_MODEL
 
 ## Backlog
 

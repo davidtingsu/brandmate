@@ -1,6 +1,6 @@
 import OpenAI from "openai";
 import { wrapOpenAI } from "weave";
-import { MODEL, EMBEDDING_MODEL } from "@/lib/config";
+import { CAROUSEL_MODEL, EMBEDDING_MODEL, MODEL } from "@/lib/config";
 
 function createClient(): OpenAI {
   const apiKey = process.env.OPENAI_API_KEY;
@@ -19,4 +19,4 @@ export function getOpenAI(): OpenAI {
   return client;
 }
 
-export { MODEL, EMBEDDING_MODEL };
+export { CAROUSEL_MODEL, EMBEDDING_MODEL, MODEL };

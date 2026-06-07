@@ -73,9 +73,10 @@ Models and token caps are locked in [`lib/config.ts`](lib/config.ts):
 
 | Setting | Value |
 |---------|-------|
-| `MODEL` | `gpt-4o-mini` only — never `gpt-4o` |
+| `MODEL` | `gpt-4o-mini` for text posts, coach, memory |
+| `CAROUSEL_MODEL` | `gpt-5.5` for carousel copy + judge (`OPENAI_CAROUSEL_MODEL`) |
 | `EMBEDDING_MODEL` | `text-embedding-3-small` |
-| `max_tokens` | 800 generate / 400 judge / 150 memory |
+| `max_tokens` | 800 generate / 1200 carousel / 400 judge / 150 memory |
 
 **Recommended:** Set a **$15/month** spending limit at [OpenAI organization limits](https://platform.openai.com/settings/organization/limits).
 

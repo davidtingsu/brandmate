@@ -21,7 +21,7 @@ import type {
   SummarizeLessonInput,
   SummarizeLessonOutput,
 } from "@/lib/types";
-import { getOpenAI, MODEL } from "@/lib/weave/openai";
+import { CAROUSEL_MODEL, getOpenAI, MODEL } from "@/lib/weave/openai";
 
 async function parseJson<T>(content: string): Promise<T> {
   const cleaned = content.replace(/```json\n?|\n?```/g, "").trim();
@@ -127,8 +127,11 @@ export async function judgePostCore(input: JudgeInput): Promise<JudgeOutput> {
     ? "\nNote: This post includes an image attachment."
     : "";
 
+  const judgeModel =
+    post.format === "carousel" ? CAROUSEL_MODEL : MODEL;
+
   const response = await openai.chat.completions.create({
-    model: MODEL,
+    model: judgeModel,
     max_tokens: MAX_TOKENS.judge,
     response_format: { type: "json_object" },
     messages: [

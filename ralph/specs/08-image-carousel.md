@@ -39,6 +39,13 @@ Preview uses `<img>` when `imageUrl` set.
 
 Portrait size 1080×1350 in config.
 
+## REQ-CAROUSEL-IMG-009
+
+Carousel copy uses premium model via `CAROUSEL_MODEL` (`OPENAI_CAROUSEL_MODEL`, default `gpt-5.5`).
+
+- AC1: `carousel-gen.ts` calls `CAROUSEL_MODEL`, not `MODEL`
+- AC2: Carousel judge path uses `CAROUSEL_MODEL` in `post-loop.ts`
+
 ## Verification
 
 - automated: `image-carousel.sh`

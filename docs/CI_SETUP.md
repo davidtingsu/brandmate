@@ -38,6 +38,7 @@ Repo → **Settings** → **Secrets and variables** → **Actions** → **New re
 | `WANDB_API_KEY` | W&B API key | Yes |
 | `WEAVE_PROJECT` | e.g. `your-username/brandmate` | Yes |
 | `OPENAI_MODEL` | `gpt-4o-mini` | Optional (defaults in app) |
+| `OPENAI_CAROUSEL_MODEL` | `gpt-5.5` | Optional — carousel copy + judge |
 | `OPENAI_EMBEDDING_MODEL` | `text-embedding-3-small` | Optional |
 | `NEXT_PUBLIC_SUPABASE_URL` | Supabase project URL | Yes (sessions) |
 | `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | `sb_publishable_...` | Yes (sessions) |

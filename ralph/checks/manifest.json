@@ -50,6 +50,7 @@
     "REQ-CAROUSEL-IMG-005": ["image-carousel.sh"],
     "REQ-CAROUSEL-IMG-006": ["image-carousel.sh"],
     "REQ-CAROUSEL-IMG-007": ["image-carousel.sh"],
-    "REQ-CAROUSEL-IMG-008": ["image-carousel.sh"]
+    "REQ-CAROUSEL-IMG-008": ["image-carousel.sh"],
+    "REQ-CAROUSEL-IMG-009": ["image-carousel.sh"]
   }
 }
