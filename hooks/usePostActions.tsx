@@ -1,5 +1,6 @@
 "use client";
 
+import { ApprovePostCard } from "@/components/generative/ApprovePostCard";
 import { AttemptCard } from "@/components/generative/AttemptCard";
 import { BrandProfileCard } from "@/components/generative/BrandProfileCard";
 import { HumanFeedbackButtons } from "@/components/generative/HumanFeedbackButtons";
@@ -7,31 +8,28 @@ import { JudgeBreakdown } from "@/components/generative/JudgeBreakdown";
 import { LessonCard } from "@/components/generative/LessonCard";
 import { MemoryListCard } from "@/components/generative/MemoryListCard";
 import { PostCard } from "@/components/generative/PostCard";
+import { useBrandProfile } from "@/contexts/BrandProfileContext";
 import { useChatSessionContext } from "@/contexts/ChatSessionContext";
 import type {
   BrandProfile,
   HumanFeedbackType,
   PostAttempt,
+  PostBrandingOptions,
   PostFormat,
   PostType,
 } from "@/lib/types";
 import { useCopilotAction, useCopilotReadable } from "@copilotkit/react-core";
-import { useCallback, useRef, type Dispatch, type SetStateAction } from "react";
+import { useRouter } from "next/navigation";
+import { useCallback, useRef } from "react";
 
-const DEFAULT_PROFILE: BrandProfile = {
-  name: "",
-  niche: "",
-  audience: "",
-  voice: "",
-};
-
-export function usePostActions(
-  brandProfile: BrandProfile = DEFAULT_PROFILE,
-  setBrandProfile?: Dispatch<SetStateAction<BrandProfile>>
-) {
+export function usePostActions() {
+  const router = useRouter();
+  const { brandProfile, setBrandProfile } = useBrandProfile();
   const { persistAttempt, activeSessionId, sessionsEnabled } =
     useChatSessionContext();
+
   const lastAttemptRef = useRef<PostAttempt | null>(null);
+  const lastBrandingRef = useRef<PostBrandingOptions | undefined>(undefined);
   const pendingLessonRef = useRef<{
     lesson: string;
     scoreBefore: number;
@@ -82,6 +80,37 @@ export function usePostActions(
     [activeSessionId, sessionsEnabled]
   );
 
+  const persistApprovedPost = useCallback(
+    async (attempt: PostAttempt, variantIndex = 0) => {
+      if (!activeSessionId || !sessionsEnabled) return;
+      await fetch(`/api/sessions/${activeSessionId}/messages`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          role: "assistant",
+          content: null,
+          metadata: {
+            type: "approved_post",
+            attempt,
+            variantIndex,
+            branding: lastBrandingRef.current ?? attempt.branding,
+            approvedAt: new Date().toISOString(),
+          },
+        }),
+      });
+    },
+    [activeSessionId, sessionsEnabled]
+  );
+
+  const handlePreviewInFeed = useCallback(async () => {
+    const attempt = lastAttemptRef.current;
+    if (!attempt) return;
+    await persistApprovedPost(attempt);
+    if (activeSessionId) {
+      router.push(`/preview/${activeSessionId}`);
+    }
+  }, [activeSessionId, persistApprovedPost, router]);
+
   const renderAttemptCards = (
     attempt: PostAttempt,
     weaveTraceId?: string,
@@ -93,24 +122,28 @@ export function usePostActions(
         variants={attempt.variants}
         brandProfile={brandProfile}
         topic={attempt.topic}
+        branding={attempt.branding ?? lastBrandingRef.current}
       />
       <JudgeBreakdown breakdown={attempt.breakdown} score={attempt.judgeScore} />
       <AttemptCard attempt={attempt} weaveProject={weaveTraceId} />
       {showFeedback && (
-        <HumanFeedbackButtons
-          onSelect={async (feedback) => {
-            await fetch("/api/agents/memory", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                action: "feedback",
-                feedbackType: feedback,
-                scoreBefore: attempt.judgeScore,
-                traceId: attempt.weaveTraceId,
-              }),
-            });
-          }}
-        />
+        <>
+          <HumanFeedbackButtons
+            onSelect={async (feedback) => {
+              await fetch("/api/agents/memory", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  action: "feedback",
+                  feedbackType: feedback,
+                  scoreBefore: attempt.judgeScore,
+                  traceId: attempt.weaveTraceId,
+                }),
+              });
+            }}
+          />
+          <ApprovePostCard onPreview={() => void handlePreviewInFeed()} />
+        </>
       )}
     </>
   );
@@ -118,17 +151,40 @@ export function usePostActions(
   useCopilotAction({
     name: "setBrandProfile",
     description:
-      "Set or update the user's LinkedIn personal brand profile (name, niche, audience, voice, goals)",
+      "Set or update the user's LinkedIn personal brand profile",
     parameters: [
       { name: "name", type: "string", description: "User's name", required: true },
       { name: "niche", type: "string", description: "Professional niche", required: true },
       { name: "audience", type: "string", description: "Target audience", required: true },
       { name: "voice", type: "string", description: "Writing voice style", required: true },
       { name: "goals", type: "string", description: "Brand goals", required: false },
+      { name: "handle", type: "string", description: "LinkedIn handle", required: false },
+      {
+        name: "profileImageUrl",
+        type: "string",
+        description: "Profile image URL",
+        required: false,
+      },
     ],
-    handler: async ({ name, niche, audience, voice, goals }) => {
-      const profile: BrandProfile = { name, niche, audience, voice, goals };
-      setBrandProfile?.(profile);
+    handler: async ({
+      name,
+      niche,
+      audience,
+      voice,
+      goals,
+      handle,
+      profileImageUrl,
+    }) => {
+      const profile: BrandProfile = {
+        name,
+        niche,
+        audience,
+        voice,
+        goals,
+        handle,
+        profileImageUrl,
+      };
+      setBrandProfile(profile);
       await persistProfile(profile);
       return { success: true, profile };
     },
@@ -153,7 +209,7 @@ export function usePostActions(
       {
         name: "includeImage",
         type: "boolean",
-        description: "Attach image to text post (Post with Image)",
+        description: "Attach image to text post",
         required: false,
       },
       {
@@ -177,7 +233,19 @@ export function usePostActions(
       {
         name: "imageUrl",
         type: "string",
-        description: "Uploaded image URL for text post",
+        description: "Uploaded image URL",
+        required: false,
+      },
+      {
+        name: "includeHandle",
+        type: "boolean",
+        description: "Overlay handle on carousel/image",
+        required: false,
+      },
+      {
+        name: "includeProfileImage",
+        type: "boolean",
+        description: "Overlay profile photo on carousel/image",
         required: false,
       },
     ],
@@ -189,10 +257,22 @@ export function usePostActions(
       slideCount,
       postType,
       imageUrl,
+      includeHandle,
+      includeProfileImage,
     }) => {
       const profile = ensureProfile();
       const postFormat = (format as PostFormat) ?? "text";
       lastFormatRef.current = postFormat;
+
+      const branding: PostBrandingOptions | undefined =
+        includeHandle !== undefined || includeProfileImage !== undefined
+          ? {
+              includeHandle: includeHandle ?? false,
+              includeProfileImage: includeProfileImage ?? false,
+            }
+          : lastBrandingRef.current;
+
+      lastBrandingRef.current = branding;
 
       const res = await fetch("/api/agents/orchestrate", {
         method: "POST",
@@ -207,6 +287,7 @@ export function usePostActions(
           imageStyle,
           slideCount,
           imageUrl,
+          branding,
         }),
       });
       if (!res.ok) {
@@ -214,12 +295,16 @@ export function usePostActions(
         throw new Error(err.error ?? "Failed to create post");
       }
       const data = await res.json();
-      lastAttemptRef.current = data.attempt;
+      const attempt = {
+        ...(data.attempt as PostAttempt),
+        branding: branding ?? (data.attempt as PostAttempt).branding,
+      };
+      lastAttemptRef.current = attempt;
       await persistAttempt({
-        attempt: data.attempt,
+        attempt,
         weaveTraceId: data.weaveTraceId,
       });
-      return data;
+      return { ...data, attempt };
     },
     render: ({ status, result }) => {
       if (status === "inProgress") {
@@ -237,6 +322,34 @@ export function usePostActions(
       return renderAttemptCards(
         attempt,
         result.weaveTraceId as string | undefined
+      );
+    },
+  });
+
+  useCopilotAction({
+    name: "approvePost",
+    description:
+      "Mark the latest draft as approved and open the LinkedIn feed preview",
+    parameters: [
+      {
+        name: "variantIndex",
+        type: "number",
+        description: "0 for variant A, 1 for variant B",
+        required: false,
+      },
+    ],
+    handler: async ({ variantIndex }) => {
+      const attempt = lastAttemptRef.current;
+      if (!attempt) throw new Error("No post to approve");
+      await persistApprovedPost(attempt, variantIndex ?? 0);
+      return { sessionId: activeSessionId, approved: true };
+    },
+    render: ({ status }) => {
+      if (status === "inProgress") {
+        return <div className="text-sm text-slate-500">Saving approval…</div>;
+      }
+      return (
+        <ApprovePostCard onPreview={() => void handlePreviewInFeed()} />
       );
     },
   });
@@ -298,10 +411,13 @@ export function usePostActions(
       }
       if (status !== "complete" || !result?.lesson) return <></>;
       return (
-        <LessonCard
-          lesson={result.lesson as string}
-          scoreBefore={result.scoreBefore as number}
-        />
+        <>
+          <LessonCard
+            lesson={result.lesson as string}
+            scoreBefore={result.scoreBefore as number}
+          />
+          <ApprovePostCard onPreview={() => void handlePreviewInFeed()} />
+        </>
       );
     },
   });
@@ -342,19 +458,21 @@ export function usePostActions(
       if (status !== "complete" || !result?.lesson) return <></>;
       const stored = result.lesson as { lesson: string; score_before: number };
       return (
-        <LessonCard
-          lesson={stored.lesson}
-          scoreBefore={stored.score_before}
-          approved
-        />
+        <>
+          <LessonCard
+            lesson={stored.lesson}
+            scoreBefore={stored.score_before}
+            approved
+          />
+          <ApprovePostCard onPreview={() => void handlePreviewInFeed()} />
+        </>
       );
     },
   });
 
   useCopilotAction({
     name: "retryWithLesson",
-    description:
-      "Retry post generation using lessons stored in Redis. Pass score_before from last attempt.",
+    description: "Retry post generation using lessons stored in Redis",
     parameters: [
       { name: "topic", type: "string", description: "Post topic to retry", required: true },
       {
@@ -381,6 +499,18 @@ export function usePostActions(
         description: "story | insight | lesson | milestone | hot_take",
         required: false,
       },
+      {
+        name: "includeHandle",
+        type: "boolean",
+        description: "Overlay handle",
+        required: false,
+      },
+      {
+        name: "includeProfileImage",
+        type: "boolean",
+        description: "Overlay profile photo",
+        required: false,
+      },
     ],
     handler: async ({
       topic,
@@ -388,6 +518,8 @@ export function usePostActions(
       includeImage,
       slideCount,
       postType,
+      includeHandle,
+      includeProfileImage,
     }) => {
       const profile = ensureProfile();
       const scoreBefore = lastAttemptRef.current?.judgeScore;
@@ -397,6 +529,15 @@ export function usePostActions(
         "text";
       lastFormatRef.current = postFormat;
       attemptCounterRef.current += 1;
+
+      const branding: PostBrandingOptions | undefined =
+        includeHandle !== undefined || includeProfileImage !== undefined
+          ? {
+              includeHandle: includeHandle ?? false,
+              includeProfileImage: includeProfileImage ?? false,
+            }
+          : lastBrandingRef.current;
+      lastBrandingRef.current = branding;
 
       const res = await fetch("/api/agents/orchestrate", {
         method: "POST",
@@ -410,16 +551,21 @@ export function usePostActions(
           includeImage,
           slideCount,
           scoreBefore,
+          branding,
         }),
       });
       if (!res.ok) throw new Error("Retry failed");
       const data = await res.json();
-      lastAttemptRef.current = data.attempt;
+      const attempt = {
+        ...(data.attempt as PostAttempt),
+        branding: branding ?? (data.attempt as PostAttempt).branding,
+      };
+      lastAttemptRef.current = attempt;
       await persistAttempt({
-        attempt: data.attempt,
+        attempt,
         weaveTraceId: data.weaveTraceId,
       });
-      return data;
+      return { ...data, attempt };
     },
     render: ({ status, result }) => {
       if (status === "inProgress") {
