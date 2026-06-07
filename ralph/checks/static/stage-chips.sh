@@ -10,3 +10,6 @@ search_q "CreateFlowStepper" components/create/CreatePostChat.tsx
 search_q "suggestions" components/create/CreatePostChat.tsx
 search_q "STAGE_CHIPS|stage-chips|getStageChips" lib/create-flow/ components/create/
 search_q 'stage === "preview"' components/create/CreatePostChat.tsx
+search_q "System diagram" lib/create-flow/stage-chips.ts
+search_q "dispatchDiagramAgent" hooks/
+search_q "CAROUSEL_MODEL" lib/agents/diagram-agent.ts

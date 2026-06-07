@@ -29,7 +29,9 @@ export function GeneratePostForm({
   onSubmit,
 }: GeneratePostFormProps) {
   const [topic, setTopic] = useState("");
-  const [format, setFormat] = useState<"text" | "image" | "carousel">("text");
+  const [format, setFormat] = useState<
+    "text" | "image" | "carousel" | "diagram"
+  >("text");
   const [slideCount, setSlideCount] = useState(7);
   const [includeHandle, setIncludeHandle] = useState(true);
   const [includeProfileImage, setIncludeProfileImage] = useState(true);
@@ -55,7 +57,12 @@ export function GeneratePostForm({
     try {
       await onSubmit({
         topic: topic.trim(),
-        format: format === "carousel" ? "carousel" : "text",
+        format:
+          format === "carousel"
+            ? "carousel"
+            : format === "diagram"
+              ? "diagram"
+              : "text",
         includeImage: format === "image",
         slideCount,
         portraitImageUrl:
@@ -111,6 +118,7 @@ export function GeneratePostForm({
         <div className="flex flex-wrap gap-2">
           {formatBtn("text", "Text")}
           {formatBtn("image", "Post with Image")}
+          {formatBtn("diagram", "Post with System Diagram")}
           {formatBtn("carousel", "Carousel")}
         </div>
       </div>

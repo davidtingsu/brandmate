@@ -8,7 +8,9 @@ import { JudgeBreakdown } from "@/components/generative/JudgeBreakdown";
 import { LessonCard } from "@/components/generative/LessonCard";
 import { MemoryListCard } from "@/components/generative/MemoryListCard";
 import { PostCard } from "@/components/generative/PostCard";
+import { SystemDiagramCard } from "@/components/generative/SystemDiagramCard";
 import { useBrandProfile } from "@/contexts/BrandProfileContext";
+import { useDiagramAgent } from "@/hooks/useDiagramAgent";
 import { useChatSessionContext } from "@/contexts/ChatSessionContext";
 import { useCreateFlow } from "@/contexts/CreateFlowContext";
 import { useSessionLoader } from "@/hooks/useSessionLoader";
@@ -67,6 +69,10 @@ export function usePostActions() {
   const attemptCounterRef = useRef(1);
   const lastFormatRef = useRef<PostFormat>("text");
 
+  useDiagramAgent({
+    getActiveFormat: () => lastFormatRef.current,
+  });
+
   useEffect(() => {
     if (lastAttempt) {
       lastAttemptRef.current = lastAttempt;
@@ -93,6 +99,12 @@ export function usePostActions() {
           format: lastAttemptRef.current.variants[0]?.format,
         }
       : null,
+  });
+
+  useCopilotReadable({
+    description:
+      "Active post format for this studio session. When carousel, never generate system diagrams.",
+    value: lastFormatRef.current,
   });
 
   const ensureProfile = useCallback(() => {
@@ -172,7 +184,14 @@ export function usePostActions() {
             brandProfile={brandProfile}
             topic={attempt.topic}
             branding={attempt.branding ?? lastBrandingRef.current}
+            systemDiagram={attempt.systemDiagram}
           />
+          {attempt.systemDiagram && (
+            <SystemDiagramCard
+              diagram={attempt.systemDiagram}
+              agentLabel="diagram_explainer"
+            />
+          )}
           <JudgeBreakdown
             breakdown={attempt.breakdown}
             score={attempt.judgeScore}
@@ -229,6 +248,9 @@ export function usePostActions() {
         resetCarouselRender();
       }
 
+      const orchestrateFormat: PostFormat =
+        postFormat === "diagram" ? "text" : postFormat;
+
       const res = await fetch("/api/agents/orchestrate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -237,7 +259,7 @@ export function usePostActions() {
           brandProfile: profile,
           attemptNumber: attemptCounterRef.current,
           postType: params.postType ?? "story",
-          format: postFormat,
+          format: orchestrateFormat,
           includeImage: params.includeImage ?? false,
           imageStyle: params.imageStyle,
           slideCount: params.slideCount,
@@ -275,6 +297,34 @@ export function usePostActions() {
           variants: attempt.variants.map((v, i) =>
             i === 0 ? { ...v, slides: renderedSlides } : v
           ),
+        };
+      }
+
+      if (postFormat === "diagram") {
+        const diagramRes = await fetch("/api/agents/diagram", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            concept: params.topic,
+            context: `LinkedIn niche: ${profile.niche}. Audience: ${profile.audience}. Voice: ${profile.voice}.`,
+          }),
+        });
+        if (!diagramRes.ok) {
+          const err = await diagramRes.json().catch(() => ({}));
+          throw new Error(
+            (err as { error?: string }).error ?? "Diagram generation failed"
+          );
+        }
+        const diagramData = (await diagramRes.json()) as {
+          diagram: PostAttempt["systemDiagram"];
+        };
+        attempt = {
+          ...attempt,
+          systemDiagram: diagramData.diagram,
+          variants: attempt.variants.map((v) => ({
+            ...v,
+            format: "diagram" as PostFormat,
+          })),
         };
       }
 
@@ -354,13 +404,13 @@ export function usePostActions() {
   useCopilotAction({
     name: "createPost",
     description:
-      "Generate a LinkedIn post. Formats: text, text with image (includeImage), or carousel (slideCount 5-10).",
+      "Generate a LinkedIn post. Formats: text, text with image (includeImage), diagram (system diagram infographic), or carousel (slideCount 5-10).",
     parameters: [
       { name: "topic", type: "string", description: "Post topic", required: true },
       {
         name: "format",
         type: "string",
-        description: "text | carousel",
+        description: "text | diagram | carousel",
         required: false,
       },
       {
@@ -426,7 +476,9 @@ export function usePostActions() {
           <div className="my-2 text-sm text-slate-500">
             {fmt === "carousel"
               ? "Generating carousel, searching memories, judging draft..."
-              : "Generating post, searching memories, judging draft..."}
+              : fmt === "diagram"
+                ? "Generating post copy and system diagram..."
+                : "Generating post, searching memories, judging draft..."}
           </div>
         );
       }
@@ -586,7 +638,7 @@ export function usePostActions() {
       {
         name: "format",
         type: "string",
-        description: "text | carousel",
+        description: "text | diagram | carousel",
         required: false,
       },
       {

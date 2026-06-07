@@ -2,17 +2,13 @@ import {
   chatCompletionTokenLimit,
   DEFAULT_SLIDE_COUNT,
   MAX_SLIDE_COUNT,
-  MAX_TOKENS,
   MIN_SLIDE_COUNT,
+  modelTokenBudget,
 } from "@/lib/config";
 import { buildCarouselSlides, buildLinkedInPost } from "@/lib/linkedin-format";
+import { parseModelJson } from "@/lib/parse-model-json";
 import type { CarouselGenerateInput, CarouselGenerateOutput } from "@/lib/types";
 import { CAROUSEL_MODEL, getOpenAI } from "@/lib/weave/openai";
-
-async function parseJson<T>(content: string): Promise<T> {
-  const cleaned = content.replace(/```json\n?|\n?```/g, "").trim();
-  return JSON.parse(cleaned) as T;
-}
 
 export async function generateCarouselCore(
   input: CarouselGenerateInput
@@ -38,9 +34,11 @@ export async function generateCarouselCore(
     ? "A portrait photo is provided. Choose per-slide layout dynamically."
     : "No portrait photo — use template_content and split_before_after for all slides.";
 
+  const tokenBudget = modelTokenBudget(CAROUSEL_MODEL, "carousel");
+
   const response = await openai.chat.completions.create({
     model: CAROUSEL_MODEL,
-    ...chatCompletionTokenLimit(CAROUSEL_MODEL, MAX_TOKENS.carousel),
+    ...chatCompletionTokenLimit(CAROUSEL_MODEL, tokenBudget),
     response_format: { type: "json_object" },
     messages: [
       {
@@ -84,7 +82,15 @@ ${lessonsText}`,
     ],
   });
 
-  const raw = await parseJson<{
+  const choice = response.choices[0];
+  const content = choice?.message?.content;
+  if (!content?.trim()) {
+    throw new Error(
+      `Carousel model returned empty output (finish_reason=${choice?.finish_reason ?? "unknown"}, budget=${tokenBudget}).`
+    );
+  }
+
+  const raw = parseModelJson<{
     variants: Array<{
       hook: string;
       body: string;
@@ -92,7 +98,7 @@ ${lessonsText}`,
       hashtags?: string[];
       slides: Array<{ title: string; body: string; layout?: string }>;
     }>;
-  }>(response.choices[0]?.message?.content ?? '{"variants":[]}');
+  }>(content);
 
   const hasPortrait = Boolean(input.portraitImageUrl);
 

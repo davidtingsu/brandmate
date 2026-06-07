@@ -18,7 +18,9 @@ const STAGE_INSTRUCTIONS = {
 - Use submitHumanFeedback, storeLesson, and retryWithLesson to iterate on the draft.
 - Do not call approvePost until the user reaches Preview.
 - Do not call collectPostRequest — the form is inline in chat.
-- Profile onboarding is complete; do not ask for brand profile setup.`,
+- Profile onboarding is complete; do not ask for brand profile setup.
+- For carousel posts: never call dispatchDiagramAgent. Carousels use the PNG slide pipeline only.
+- For system diagram posts: use dispatchDiagramAgent only when the user taps the System diagram chip or chose Post with System Diagram in the form.`,
   preview: `You are BrandMate on Preview.
 - The user reviews their draft inline and clicks "Preview in feed".
 - Chips below the chat are the primary way to ask coaching questions on this step (no free-form text input).

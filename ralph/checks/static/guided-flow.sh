@@ -12,6 +12,7 @@ search_q "advanceToPreview" components/create/GuidedStepInline.tsx
 search_q "hasApprovedPost" components/create/CreatePostChat.tsx lib/sessions/approved-post.ts
 search_q "ensureSession" hooks/useSessionLoader.ts components/create/CreatePostChat.tsx
 search_absent_q "useDiagramAgent" components/create/CreatePostChat.tsx
+search_absent_q "diagram_explainer: new BuiltInAgent" app/api/copilotkit/
 search_q "createFlowStage|useCopilotReadable" hooks/useGenerativeUI.tsx
 search_q 'router\.push\("/create"\)' components/gallery/GalleryHome.tsx
 test -f app/api/sessions/route.ts

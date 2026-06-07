@@ -19,6 +19,21 @@ export const MAX_TOKENS = {
   diagram: 1400,
 } as const;
 
+type TokenBudgetKind = keyof typeof MAX_TOKENS;
+
+/** GPT-5.x uses reasoning tokens inside the completion budget — carousel needs more headroom. */
+export function modelTokenBudget(
+  model: string,
+  kind: TokenBudgetKind
+): number {
+  const base = MAX_TOKENS[kind];
+  if (!/^gpt-5/i.test(model)) return base;
+  if (kind === "carousel") return 8000;
+  if (kind === "diagram") return 6000;
+  if (kind === "judge") return 2000;
+  return base;
+}
+
 /** GPT-5+ and o-series models require max_completion_tokens instead of max_tokens. */
 export function chatCompletionTokenLimit(
   model: string,

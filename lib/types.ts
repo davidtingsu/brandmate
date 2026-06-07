@@ -1,6 +1,6 @@
 export type PostType = "story" | "insight" | "lesson" | "milestone" | "hot_take";
 
-export type PostFormat = "text" | "carousel";
+export type PostFormat = "text" | "carousel" | "diagram";
 
 export type HumanFeedbackType =
   | "too_generic"
@@ -101,6 +101,7 @@ export interface PostAttempt {
   scoreAfter?: number;
   humanFeedback?: HumanFeedbackType;
   branding?: PostBrandingOptions;
+  systemDiagram?: SystemDiagram;
 }
 
 export interface GenerateInput {

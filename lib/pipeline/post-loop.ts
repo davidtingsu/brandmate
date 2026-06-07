@@ -3,7 +3,9 @@ import {
   chatCompletionTokenLimit,
   MAX_LESSONS_IN_PROMPT,
   MAX_TOKENS,
+  modelTokenBudget,
 } from "@/lib/config";
+import { parseModelJson } from "@/lib/parse-model-json";
 import { generateCarouselCore } from "@/lib/pipeline/carousel-gen";
 import { generatePostImageCore } from "@/lib/pipeline/image-gen";
 import { buildLinkedInPost } from "@/lib/linkedin-format";
@@ -26,11 +28,6 @@ import type {
   SummarizeLessonOutput,
 } from "@/lib/types";
 import { CAROUSEL_MODEL, getOpenAI, MODEL } from "@/lib/weave/openai";
-
-async function parseJson<T>(content: string): Promise<T> {
-  const cleaned = content.replace(/```json\n?|\n?```/g, "").trim();
-  return JSON.parse(cleaned) as T;
-}
 
 export async function searchMemoriesForTopic({
   query,
@@ -91,7 +88,7 @@ ${lessonsText}`,
     ],
   });
 
-  const raw = await parseJson<{
+  const raw = parseModelJson<{
     variants: Array<{
       hook: string;
       body: string;
@@ -99,7 +96,7 @@ ${lessonsText}`,
       hashtags?: string[];
       postType?: string;
     }>;
-  }>(response.choices[0]?.message?.content ?? '{"variants":[]}');
+  }>(response.choices[0]?.message?.content, { variants: [] });
 
   const variants = raw.variants.map((v) =>
     buildLinkedInPost({
@@ -134,9 +131,11 @@ export async function judgePostCore(input: JudgeInput): Promise<JudgeOutput> {
   const judgeModel =
     post.format === "carousel" ? CAROUSEL_MODEL : MODEL;
 
+  const judgeBudget = modelTokenBudget(judgeModel, "judge");
+
   const response = await openai.chat.completions.create({
     model: judgeModel,
-    ...chatCompletionTokenLimit(judgeModel, MAX_TOKENS.judge),
+    ...chatCompletionTokenLimit(judgeModel, judgeBudget),
     response_format: { type: "json_object" },
     messages: [
       {
@@ -157,9 +156,20 @@ ${postText}`,
     ],
   });
 
-  return parseJson<JudgeOutput>(
-    response.choices[0]?.message?.content ??
-      '{"score":5,"breakdown":{"hook_strength":5,"voice_authenticity":5,"audience_fit":5,"engagement_potential":5,"brand_alignment":5},"problems":[],"feedback":""}'
+  return parseModelJson<JudgeOutput>(
+    response.choices[0]?.message?.content,
+    {
+      score: 5,
+      breakdown: {
+        hook_strength: 5,
+        voice_authenticity: 5,
+        audience_fit: 5,
+        engagement_potential: 5,
+        brand_alignment: 5,
+      },
+      problems: [],
+      feedback: "",
+    }
   );
 }
 
@@ -223,8 +233,9 @@ Judge feedback: ${input.judgeFeedback}`,
     ],
   });
 
-  const parsed = await parseJson<{ lesson: string }>(
-    response.choices[0]?.message?.content ?? '{"lesson":""}'
+  const parsed = parseModelJson<{ lesson: string }>(
+    response.choices[0]?.message?.content,
+    { lesson: "" }
   );
 
   return { lesson: parsed.lesson, scoreBefore: input.scoreBefore };

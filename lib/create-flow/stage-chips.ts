@@ -23,6 +23,12 @@ export const STAGE_CHIPS: Record<StudioFlowStage, StageChip[]> = {
       label: "Make it less generic",
       message: "Make my draft less generic and more specific to my brand.",
     },
+    {
+      id: "diagram",
+      label: "System diagram",
+      message:
+        "I want a post with a system diagram. Use dispatchDiagramAgent to build the ByteByteGo-style infographic for my topic, then help me refine the LinkedIn copy.",
+    },
   ],
   preview: [
     {

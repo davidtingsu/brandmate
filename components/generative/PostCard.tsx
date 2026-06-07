@@ -7,6 +7,7 @@ import type {
   BrandProfile,
   LinkedInPost,
   PostBrandingOptions,
+  SystemDiagram,
 } from "@/lib/types";
 import { useState } from "react";
 
@@ -15,6 +16,7 @@ interface PostCardProps {
   brandProfile: BrandProfile;
   topic?: string;
   branding?: PostBrandingOptions;
+  systemDiagram?: SystemDiagram;
   onCopy?: (text: string) => void;
 }
 
@@ -25,6 +27,7 @@ export function PostCard({
   brandProfile,
   topic,
   branding,
+  systemDiagram,
   onCopy,
 }: PostCardProps) {
   const [activeIndex, setActiveIndex] = useState(0);
@@ -93,20 +96,27 @@ export function PostCard({
       </div>
 
       {tab === "preview" ? (
-        post.format === "carousel" ? (
-          <LinkedInCarouselPreview
-            post={post}
-            profile={brandProfile}
-            topic={topic}
-            branding={branding}
-          />
-        ) : (
-          <LinkedInTextPreview
-            post={post}
-            profile={brandProfile}
-            branding={branding}
-          />
-        )
+        <div className="space-y-3">
+          {post.format === "carousel" ? (
+            <LinkedInCarouselPreview
+              post={post}
+              profile={brandProfile}
+              topic={topic}
+              branding={branding}
+            />
+          ) : (
+            <LinkedInTextPreview
+              post={post}
+              profile={brandProfile}
+              branding={branding}
+            />
+          )}
+          {post.format === "diagram" && systemDiagram && (
+            <p className="text-xs text-violet-700">
+              System diagram attached below for LinkedIn or export.
+            </p>
+          )}
+        </div>
       ) : (
         <pre className="whitespace-pre-wrap rounded-lg bg-slate-50 p-3 text-sm leading-relaxed text-slate-700">
           {text}
@@ -118,6 +128,7 @@ export function PostCard({
           {post.characterCount} chars · {post.postType} · {post.format}
           {post.image ? " · image" : ""}
           {post.slides?.length ? ` · ${post.slides.length} slides` : ""}
+          {post.format === "diagram" ? " · system diagram" : ""}
         </span>
         <div className="flex flex-wrap gap-2">
           {allSlidesRendered && (

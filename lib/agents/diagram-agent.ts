@@ -1,12 +1,11 @@
-import { MAX_TOKENS } from "@/lib/config";
+import {
+  chatCompletionTokenLimit,
+  modelTokenBudget,
+} from "@/lib/config";
 import { DIAGRAM_EXPLAINER_SYSTEM_PROMPT } from "@/lib/agents/diagram-explainer-agent";
+import { parseModelJson } from "@/lib/parse-model-json";
 import type { DiagramAgentInput, DiagramAgentOutput, SystemDiagram } from "@/lib/types";
-import { getOpenAI, MODEL } from "@/lib/weave/openai";
-
-async function parseJson<T>(content: string): Promise<T> {
-  const cleaned = content.replace(/```json\n?|\n?```/g, "").trim();
-  return JSON.parse(cleaned) as T;
-}
+import { CAROUSEL_MODEL, getOpenAI } from "@/lib/weave/openai";
 
 const DIAGRAM_JSON_SCHEMA = `{
   "title": string,
@@ -37,10 +36,11 @@ export async function generateSystemDiagram(
   input: DiagramAgentInput
 ): Promise<DiagramAgentOutput> {
   const openai = getOpenAI();
+  const tokenBudget = modelTokenBudget(CAROUSEL_MODEL, "diagram");
 
   const response = await openai.chat.completions.create({
-    model: MODEL,
-    max_tokens: MAX_TOKENS.diagram,
+    model: CAROUSEL_MODEL,
+    ...chatCompletionTokenLimit(CAROUSEL_MODEL, tokenBudget),
     response_format: { type: "json_object" },
     messages: [
       {
@@ -61,8 +61,16 @@ Style reference: ByteByteGo infographics — color-coded horizontal phases, numb
     ],
   });
 
-  const raw = await parseJson<{ diagram?: SystemDiagram } & SystemDiagram>(
-    response.choices[0]?.message?.content ?? "{}"
+  const choice = response.choices[0];
+  const content = choice?.message?.content;
+  if (!content?.trim()) {
+    throw new Error(
+      `Diagram model returned empty output (finish_reason=${choice?.finish_reason ?? "unknown"}, budget=${tokenBudget}).`
+    );
+  }
+
+  const raw = parseModelJson<{ diagram?: SystemDiagram } & SystemDiagram>(
+    content
   );
 
   const diagram: SystemDiagram =
