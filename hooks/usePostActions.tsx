@@ -7,14 +7,16 @@ import { JudgeBreakdown } from "@/components/generative/JudgeBreakdown";
 import { LessonCard } from "@/components/generative/LessonCard";
 import { MemoryListCard } from "@/components/generative/MemoryListCard";
 import { PostCard } from "@/components/generative/PostCard";
+import { useChatSessionContext } from "@/contexts/ChatSessionContext";
 import type {
   BrandProfile,
   HumanFeedbackType,
   PostAttempt,
+  PostFormat,
   PostType,
 } from "@/lib/types";
 import { useCopilotAction, useCopilotReadable } from "@copilotkit/react-core";
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useRef, type Dispatch, type SetStateAction } from "react";
 
 const DEFAULT_PROFILE: BrandProfile = {
   name: "",
@@ -23,8 +25,12 @@ const DEFAULT_PROFILE: BrandProfile = {
   voice: "",
 };
 
-export function usePostActions() {
-  const [brandProfile, setBrandProfile] = useState<BrandProfile>(DEFAULT_PROFILE);
+export function usePostActions(
+  brandProfile: BrandProfile = DEFAULT_PROFILE,
+  setBrandProfile?: Dispatch<SetStateAction<BrandProfile>>
+) {
+  const { persistAttempt, activeSessionId, sessionsEnabled } =
+    useChatSessionContext();
   const lastAttemptRef = useRef<PostAttempt | null>(null);
   const pendingLessonRef = useRef<{
     lesson: string;
@@ -33,10 +39,22 @@ export function usePostActions() {
     humanFeedback: HumanFeedbackType;
   } | null>(null);
   const attemptCounterRef = useRef(1);
+  const lastFormatRef = useRef<PostFormat>("text");
 
   useCopilotReadable({
     description: "User's LinkedIn personal brand profile",
     value: brandProfile,
+  });
+
+  useCopilotReadable({
+    description: "Last generated post attempt summary",
+    value: lastAttemptRef.current
+      ? {
+          topic: lastAttemptRef.current.topic,
+          score: lastAttemptRef.current.judgeScore,
+          format: lastAttemptRef.current.variants[0]?.format,
+        }
+      : null,
   });
 
   const ensureProfile = useCallback(() => {
@@ -47,6 +65,55 @@ export function usePostActions() {
     }
     return brandProfile;
   }, [brandProfile]);
+
+  const persistProfile = useCallback(
+    async (profile: BrandProfile) => {
+      if (!activeSessionId || !sessionsEnabled) return;
+      await fetch(`/api/sessions/${activeSessionId}/messages`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          role: "assistant",
+          content: null,
+          metadata: { type: "brand_profile", profile },
+        }),
+      });
+    },
+    [activeSessionId, sessionsEnabled]
+  );
+
+  const renderAttemptCards = (
+    attempt: PostAttempt,
+    weaveTraceId?: string,
+    showFeedback = true
+  ) => (
+    <>
+      <MemoryListCard lessons={attempt.retrievedMemories} topic={attempt.topic} />
+      <PostCard
+        variants={attempt.variants}
+        brandProfile={brandProfile}
+        topic={attempt.topic}
+      />
+      <JudgeBreakdown breakdown={attempt.breakdown} score={attempt.judgeScore} />
+      <AttemptCard attempt={attempt} weaveProject={weaveTraceId} />
+      {showFeedback && (
+        <HumanFeedbackButtons
+          onSelect={async (feedback) => {
+            await fetch("/api/agents/memory", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                action: "feedback",
+                feedbackType: feedback,
+                scoreBefore: attempt.judgeScore,
+                traceId: attempt.weaveTraceId,
+              }),
+            });
+          }}
+        />
+      )}
+    </>
+  );
 
   useCopilotAction({
     name: "setBrandProfile",
@@ -61,7 +128,8 @@ export function usePostActions() {
     ],
     handler: async ({ name, niche, audience, voice, goals }) => {
       const profile: BrandProfile = { name, niche, audience, voice, goals };
-      setBrandProfile(profile);
+      setBrandProfile?.(profile);
+      await persistProfile(profile);
       return { success: true, profile };
     },
     render: ({ result }) => {
@@ -73,18 +141,59 @@ export function usePostActions() {
   useCopilotAction({
     name: "createPost",
     description:
-      "Generate a LinkedIn post for personal brand growth. Searches Redis memory, generates variants, judges quality.",
+      "Generate a LinkedIn post. Formats: text, text with image (includeImage), or carousel (slideCount 5-10).",
     parameters: [
       { name: "topic", type: "string", description: "Post topic", required: true },
+      {
+        name: "format",
+        type: "string",
+        description: "text | carousel",
+        required: false,
+      },
+      {
+        name: "includeImage",
+        type: "boolean",
+        description: "Attach image to text post (Post with Image)",
+        required: false,
+      },
+      {
+        name: "imageStyle",
+        type: "string",
+        description: "Optional image prompt hint",
+        required: false,
+      },
+      {
+        name: "slideCount",
+        type: "number",
+        description: "Slides for carousel (5-10)",
+        required: false,
+      },
       {
         name: "postType",
         type: "string",
         description: "story | insight | lesson | milestone | hot_take",
         required: false,
       },
+      {
+        name: "imageUrl",
+        type: "string",
+        description: "Uploaded image URL for text post",
+        required: false,
+      },
     ],
-    handler: async ({ topic, postType }) => {
+    handler: async ({
+      topic,
+      format,
+      includeImage,
+      imageStyle,
+      slideCount,
+      postType,
+      imageUrl,
+    }) => {
       const profile = ensureProfile();
+      const postFormat = (format as PostFormat) ?? "text";
+      lastFormatRef.current = postFormat;
+
       const res = await fetch("/api/agents/orchestrate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -93,6 +202,11 @@ export function usePostActions() {
           brandProfile: profile,
           attemptNumber: attemptCounterRef.current,
           postType: (postType as PostType) ?? "story",
+          format: postFormat,
+          includeImage: includeImage ?? false,
+          imageStyle,
+          slideCount,
+          imageUrl,
         }),
       });
       if (!res.ok) {
@@ -101,42 +215,28 @@ export function usePostActions() {
       }
       const data = await res.json();
       lastAttemptRef.current = data.attempt;
+      await persistAttempt({
+        attempt: data.attempt,
+        weaveTraceId: data.weaveTraceId,
+      });
       return data;
     },
     render: ({ status, result }) => {
       if (status === "inProgress") {
+        const fmt = lastFormatRef.current;
         return (
           <div className="my-2 text-sm text-slate-500">
-            Generating post, searching memories, judging draft...
+            {fmt === "carousel"
+              ? "Generating carousel, searching memories, judging draft..."
+              : "Generating post, searching memories, judging draft..."}
           </div>
         );
       }
       if (status !== "complete" || !result?.attempt) return <></>;
       const attempt = result.attempt as PostAttempt;
-      return (
-        <>
-          <MemoryListCard lessons={attempt.retrievedMemories} topic={attempt.topic} />
-          <PostCard variants={attempt.variants} />
-          <JudgeBreakdown breakdown={attempt.breakdown} score={attempt.judgeScore} />
-          <AttemptCard
-            attempt={attempt}
-            weaveProject={result.weaveTraceId as string | undefined}
-          />
-          <HumanFeedbackButtons
-            onSelect={async (feedback) => {
-              await fetch("/api/agents/memory", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                  action: "feedback",
-                  feedbackType: feedback,
-                  scoreBefore: attempt.judgeScore,
-                  traceId: attempt.weaveTraceId,
-                }),
-              });
-            }}
-          />
-        </>
+      return renderAttemptCards(
+        attempt,
+        result.weaveTraceId as string | undefined
       );
     },
   });
@@ -258,15 +358,44 @@ export function usePostActions() {
     parameters: [
       { name: "topic", type: "string", description: "Post topic to retry", required: true },
       {
+        name: "format",
+        type: "string",
+        description: "text | carousel",
+        required: false,
+      },
+      {
+        name: "includeImage",
+        type: "boolean",
+        description: "Include image on text retry",
+        required: false,
+      },
+      {
+        name: "slideCount",
+        type: "number",
+        description: "Carousel slide count",
+        required: false,
+      },
+      {
         name: "postType",
         type: "string",
         description: "story | insight | lesson | milestone | hot_take",
         required: false,
       },
     ],
-    handler: async ({ topic, postType }) => {
+    handler: async ({
+      topic,
+      format,
+      includeImage,
+      slideCount,
+      postType,
+    }) => {
       const profile = ensureProfile();
       const scoreBefore = lastAttemptRef.current?.judgeScore;
+      const postFormat =
+        (format as PostFormat) ??
+        lastAttemptRef.current?.variants[0]?.format ??
+        "text";
+      lastFormatRef.current = postFormat;
       attemptCounterRef.current += 1;
 
       const res = await fetch("/api/agents/orchestrate", {
@@ -277,12 +406,19 @@ export function usePostActions() {
           brandProfile: profile,
           attemptNumber: attemptCounterRef.current,
           postType: (postType as PostType) ?? "story",
+          format: postFormat,
+          includeImage,
+          slideCount,
           scoreBefore,
         }),
       });
       if (!res.ok) throw new Error("Retry failed");
       const data = await res.json();
       lastAttemptRef.current = data.attempt;
+      await persistAttempt({
+        attempt: data.attempt,
+        weaveTraceId: data.weaveTraceId,
+      });
       return data;
     },
     render: ({ status, result }) => {
@@ -295,16 +431,10 @@ export function usePostActions() {
       }
       if (status !== "complete" || !result?.attempt) return <></>;
       const attempt = result.attempt as PostAttempt;
-      return (
-        <>
-          <MemoryListCard lessons={attempt.retrievedMemories} topic={attempt.topic} />
-          <PostCard variants={attempt.variants} />
-          <JudgeBreakdown breakdown={attempt.breakdown} score={attempt.judgeScore} />
-          <AttemptCard
-            attempt={attempt}
-            weaveProject={result.weaveTraceId as string | undefined}
-          />
-        </>
+      return renderAttemptCards(
+        attempt,
+        result.weaveTraceId as string | undefined,
+        false
       );
     },
   });
