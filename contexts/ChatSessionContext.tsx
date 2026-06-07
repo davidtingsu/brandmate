@@ -1,6 +1,6 @@
 "use client";
 
-import type { ChatThread } from "@/lib/types";
+import type { GalleryThread } from "@/lib/types";
 import {
   createContext,
   useCallback,
@@ -13,12 +13,12 @@ import {
 } from "react";
 
 interface ChatSessionContextValue {
-  threads: ChatThread[];
+  threads: GalleryThread[];
   activeSessionId: string | null;
   copilotThreadId: string;
   sessionsEnabled: boolean;
   loading: boolean;
-  setThreads: Dispatch<SetStateAction<ChatThread[]>>;
+  setThreads: Dispatch<SetStateAction<GalleryThread[]>>;
   setActiveSessionId: (id: string | null) => void;
   setCopilotThreadId: (id: string) => void;
   setSessionsEnabled: (v: boolean) => void;
@@ -36,7 +36,7 @@ function newCopilotThreadId(): string {
 }
 
 export function ChatSessionProvider({ children }: { children: ReactNode }) {
-  const [threads, setThreads] = useState<ChatThread[]>([]);
+  const [threads, setThreads] = useState<GalleryThread[]>([]);
   const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
   const [copilotThreadId, setCopilotThreadId] = useState(newCopilotThreadId);
   const [sessionsEnabled, setSessionsEnabled] = useState(false);

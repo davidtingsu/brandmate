@@ -177,7 +177,7 @@ export function BrandMateWorkflowProvider({
           await updatePostTitle(activeSessionId, title);
           setThreads(
             threads.map((t) =>
-              t.id === activeSessionId ? { ...t, title } : t
+              t.id === activeSessionId ? { ...t, title, displayTitle: title } : t
             )
           );
         }

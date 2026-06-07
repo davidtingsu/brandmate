@@ -2,12 +2,12 @@
 
 import { useChatSessionContext } from "@/contexts/ChatSessionContext";
 import { useSessionLoader } from "@/hooks/useSessionLoader";
-import type { ChatThread } from "@/lib/types";
+import type { GalleryThread } from "@/lib/types";
 import { useState } from "react";
 
 interface PostsGalleryProps {
   onNewPost: () => void;
-  onSelectPost: (thread: ChatThread) => void;
+  onSelectPost: (thread: GalleryThread) => void;
 }
 
 function formatDate(iso: string) {
@@ -16,6 +16,10 @@ function formatDate(iso: string) {
     day: "numeric",
     year: "numeric",
   });
+}
+
+function threadTitle(thread: GalleryThread): string {
+  return thread.displayTitle ?? thread.title ?? "Untitled post";
 }
 
 export function PostsGallery({ onNewPost, onSelectPost }: PostsGalleryProps) {
@@ -31,8 +35,6 @@ export function PostsGallery({ onNewPost, onSelectPost }: PostsGalleryProps) {
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
   const handleDelete = async (id: string) => {
-    if (!confirm("Delete this post?")) return;
-
     setDeletingId(id);
     try {
       const res = await fetch(`/api/sessions/${id}`, { method: "DELETE" });
@@ -120,65 +122,85 @@ export function PostsGallery({ onNewPost, onSelectPost }: PostsGalleryProps) {
         </div>
       ) : (
         <ul className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {threads.map((thread) => (
-            <li key={thread.id}>
-              <div
-                className={`group relative rounded-xl border bg-white shadow-sm transition hover:border-linkedin/30 hover:shadow-md ${
-                  activeSessionId === thread.id
-                    ? "border-linkedin ring-2 ring-linkedin/20"
-                    : "border-slate-200"
-                }`}
-              >
+          {threads.map((thread) => {
+            const galleryThread = thread as GalleryThread;
+            const title = threadTitle(galleryThread);
+            const previewImage = galleryThread.previewImageUrl;
+
+            return (
+              <li key={thread.id}>
                 <div
-                  role="button"
-                  tabIndex={0}
-                  onClick={() => onSelectPost(thread)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" || e.key === " ") {
-                      e.preventDefault();
-                      onSelectPost(thread);
-                    }
-                  }}
-                  className="flex h-full w-full cursor-pointer flex-col p-5 pr-16 text-left outline-none focus-visible:ring-2 focus-visible:ring-linkedin/30"
+                  className={`group relative overflow-hidden rounded-xl border bg-white shadow-sm transition hover:border-linkedin/30 hover:shadow-md ${
+                    activeSessionId === thread.id
+                      ? "border-linkedin ring-2 ring-linkedin/20"
+                      : "border-slate-200"
+                  }`}
                 >
-                  <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-br from-blue-50 to-blue-100 text-linkedin">
-                    <svg
-                      className="h-5 w-5"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                      strokeWidth={1.5}
-                      aria-hidden
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z"
-                      />
-                    </svg>
+                  <div
+                    role="button"
+                    tabIndex={0}
+                    onClick={() => onSelectPost(galleryThread)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        onSelectPost(galleryThread);
+                      }
+                    }}
+                    className="flex h-full w-full cursor-pointer flex-col text-left outline-none focus-visible:ring-2 focus-visible:ring-linkedin/30"
+                  >
+                    {previewImage ? (
+                      <>
+                        <div className="aspect-[4/5] w-full overflow-hidden bg-slate-100">
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img
+                            src={previewImage}
+                            alt=""
+                            className="h-full w-full object-cover"
+                          />
+                        </div>
+                        <div className="p-4 pr-14">
+                          <span className="line-clamp-2 text-base font-medium text-slate-900">
+                            {title}
+                          </span>
+                          <span className="mt-2 block text-xs text-slate-500">
+                            Updated {formatDate(thread.updated_at)}
+                          </span>
+                        </div>
+                      </>
+                    ) : (
+                      <div className="flex min-h-[220px] flex-col justify-between bg-gradient-to-br from-slate-800 via-linkedin to-blue-600 p-5 pr-14 text-white">
+                        <div>
+                          <span className="line-clamp-3 text-lg font-semibold leading-snug">
+                            {title}
+                          </span>
+                          {galleryThread.previewText && (
+                            <p className="mt-3 line-clamp-3 text-sm leading-relaxed text-white/85">
+                              {galleryThread.previewText}
+                            </p>
+                          )}
+                        </div>
+                        <span className="mt-4 text-xs text-white/70">
+                          Updated {formatDate(thread.updated_at)}
+                        </span>
+                      </div>
+                    )}
                   </div>
-                  <span className="line-clamp-2 flex-1 text-base font-medium text-slate-900">
-                    {thread.title ?? "Untitled post"}
-                  </span>
-                  <span className="mt-3 text-xs text-slate-500">
-                    Updated {formatDate(thread.updated_at)}
-                  </span>
+                  <button
+                    type="button"
+                    disabled={deletingId === thread.id}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      void handleDelete(thread.id);
+                    }}
+                    className="absolute right-3 top-3 rounded-md px-2 py-1 text-xs text-slate-400 opacity-0 transition hover:bg-red-50 hover:text-red-600 disabled:opacity-50 group-hover:opacity-100"
+                    aria-label="Delete post"
+                  >
+                    {deletingId === thread.id ? "Deleting…" : "Delete"}
+                  </button>
                 </div>
-                <button
-                  type="button"
-                  disabled={deletingId === thread.id}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    void handleDelete(thread.id);
-                  }}
-                  className="absolute right-3 top-3 rounded-md px-2 py-1 text-xs text-slate-400 opacity-0 transition hover:bg-red-50 hover:text-red-600 disabled:opacity-50 group-hover:opacity-100"
-                  aria-label="Delete post"
-                >
-                  {deletingId === thread.id ? "Deleting…" : "Delete"}
-                </button>
-              </div>
-            </li>
-          ))}
+              </li>
+            );
+          })}
         </ul>
       )}
     </div>

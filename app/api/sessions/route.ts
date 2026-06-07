@@ -1,9 +1,12 @@
+import { buildThreadGalleryPreview } from "@/lib/sessions/gallery-preview";
 import { getOrCreateUserId } from "@/lib/sessions/user-id";
 import {
   createThread,
+  listLatestAttemptsForThreads,
   listThreads,
   sessionsEnabled,
 } from "@/lib/sessions/store";
+import type { GalleryThread } from "@/lib/types";
 import { formatError } from "@/lib/weave/errors";
 import { NextRequest, NextResponse } from "next/server";
 
@@ -14,7 +17,12 @@ export async function GET() {
     }
     const userId = await getOrCreateUserId();
     const threads = await listThreads(userId);
-    return NextResponse.json({ threads, enabled: true });
+    const attempts = await listLatestAttemptsForThreads(threads.map((t) => t.id));
+    const galleryThreads: GalleryThread[] = threads.map((thread) => ({
+      ...thread,
+      ...buildThreadGalleryPreview(thread, attempts[thread.id]),
+    }));
+    return NextResponse.json({ threads: galleryThreads, enabled: true });
   } catch (error) {
     console.error("[sessions GET]", error);
     return NextResponse.json({ error: formatError(error) }, { status: 500 });

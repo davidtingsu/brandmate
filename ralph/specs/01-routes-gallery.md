@@ -30,7 +30,22 @@ Gallery delete removes post without triggering card navigation.
 
 - AC1: Delete button calls `stopPropagation` so card `onClick` does not fire
 - AC2: `DELETE /api/sessions/:id` removes thread; UI updates via `setThreads`
+- AC3: Delete is instant (no `confirm` dialog)
+
+## REQ-GALLERY-006
+
+Gallery cards show preview image or title + text fallback.
+
+- AC1: `GET /api/sessions` returns `previewImageUrl`, `displayTitle`, `previewText`
+- AC2: Cards render cover image when `previewImageUrl` is set
+
+## REQ-GALLERY-007
+
+Post generation produces a single variant (no A/B UI).
+
+- AC1: Prompts request exactly 1 variant
+- AC2: `PostCard` has no Variant A/B toggle
 
 ## Verification
 
-- automated: `ralph/checks/static/guided-flow.sh`, `gallery-delete.sh`, build
+- automated: `guided-flow.sh`, `gallery-delete.sh`, `gallery-preview.sh`, build

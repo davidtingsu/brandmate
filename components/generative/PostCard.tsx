@@ -27,9 +27,8 @@ export function PostCard({
   branding,
   onCopy,
 }: PostCardProps) {
-  const [activeIndex, setActiveIndex] = useState(0);
   const [tab, setTab] = useState<Tab>("preview");
-  const post = variants[activeIndex];
+  const post = variants[0];
 
   if (!post) return null;
 
@@ -70,35 +69,19 @@ export function PostCard({
     <div className="my-3 rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
       <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
         <h3 className="text-sm font-semibold text-slate-800">LinkedIn Post</h3>
-        <div className="flex flex-wrap gap-1">
-          <div className="flex rounded-lg bg-slate-100 p-0.5">
-            {(["preview", "raw"] as Tab[]).map((t) => (
-              <button
-                key={t}
-                type="button"
-                onClick={() => setTab(t)}
-                className={`rounded-md px-2 py-0.5 text-xs font-medium capitalize ${
-                  tab === t
-                    ? "bg-white text-slate-900 shadow-sm"
-                    : "text-slate-600"
-                }`}
-              >
-                {t}
-              </button>
-            ))}
-          </div>
-          {variants.map((_, i) => (
+        <div className="flex rounded-lg bg-slate-100 p-0.5">
+          {(["preview", "raw"] as Tab[]).map((t) => (
             <button
-              key={i}
+              key={t}
               type="button"
-              onClick={() => setActiveIndex(i)}
-              className={`rounded px-2 py-0.5 text-xs font-medium ${
-                i === activeIndex
-                  ? "bg-linkedin text-white"
-                  : "bg-slate-100 text-slate-600"
+              onClick={() => setTab(t)}
+              className={`rounded-md px-2 py-0.5 text-xs font-medium capitalize ${
+                tab === t
+                  ? "bg-white text-slate-900 shadow-sm"
+                  : "text-slate-600"
               }`}
             >
-              Variant {i === 0 ? "A" : "B"}
+              {t}
             </button>
           ))}
         </div>

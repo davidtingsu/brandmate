@@ -212,6 +212,14 @@ export interface ChatThread {
   updated_at: string;
 }
 
+export interface GalleryThreadPreview {
+  previewImageUrl?: string;
+  displayTitle?: string;
+  previewText?: string;
+}
+
+export type GalleryThread = ChatThread & GalleryThreadPreview;
+
 export interface ChatMessage {
   id: string;
   thread_id: string;

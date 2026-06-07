@@ -31,7 +31,7 @@ export async function generateCarouselCore(
       : "";
 
   const portraitContext = input.portraitImageUrl
-    ? "A portrait photo is provided. Choose per-slide layout dynamically."
+    ? "A portrait photo is provided. Choose per-slide layout dynamically. Slide images will composite the uploaded portrait unchanged — copy should assume the author's real photo appears as-is on portrait slides."
     : "No portrait photo — use template_content and split_before_after for all slides.";
 
   const tokenBudget = modelTokenBudget(CAROUSEL_MODEL, "carousel");
@@ -55,7 +55,7 @@ export async function generateCarouselCore(
     }
   ]
 }
-Exactly 2 variants (A/B). Each variant must have exactly ${slideCount} slides.
+Exactly 1 variant. The variant must have exactly ${slideCount} slides.
 
 Per-slide layout (pick dynamically per slide):
 - portrait_cover: full-bleed portrait + handwritten hook (usually slide 1 when portrait provided)
@@ -107,7 +107,7 @@ ${lessonsText}`,
 
   const hasPortrait = Boolean(input.portraitImageUrl);
 
-  const variants = raw.variants.map((v) =>
+  const variants = raw.variants.slice(0, 1).map((v) =>
     buildLinkedInPost({
       hook: v.hook,
       body: v.body,

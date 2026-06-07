@@ -2,7 +2,7 @@ import {
   createServerClient,
   isSupabaseConfigured,
 } from "@/lib/supabase/client";
-import type { ChatMessage, ChatThread } from "@/lib/types";
+import type { ChatMessage, ChatThread, PostAttempt } from "@/lib/types";
 
 export function sessionsEnabled(): boolean {
   return isSupabaseConfigured();
@@ -60,6 +60,33 @@ export async function deleteThread(threadId: string): Promise<void> {
     .eq("id", threadId);
 
   if (error) throw new Error(error.message);
+}
+
+export async function listLatestAttemptsForThreads(
+  threadIds: string[]
+): Promise<Record<string, PostAttempt>> {
+  if (threadIds.length === 0) return {};
+
+  const supabase = createServerClient();
+  const { data, error } = await supabase
+    .from("chat_messages")
+    .select("thread_id, metadata, created_at")
+    .in("thread_id", threadIds)
+    .filter("metadata->>type", "eq", "post_attempt")
+    .order("created_at", { ascending: false });
+
+  if (error) throw new Error(error.message);
+
+  const result: Record<string, PostAttempt> = {};
+  for (const row of data ?? []) {
+    const threadId = row.thread_id as string;
+    if (result[threadId]) continue;
+    const attempt = (row.metadata as { attempt?: PostAttempt })?.attempt;
+    if (attempt) {
+      result[threadId] = attempt;
+    }
+  }
+  return result;
 }
 
 export async function getThread(threadId: string): Promise<ChatThread | null> {

@@ -71,7 +71,7 @@ export async function generatePostCore(
     messages: [
       {
         role: "system",
-        content: `You write LinkedIn text posts for personal brand growth. Return JSON: { "variants": [ { "hook", "body", "cta", "hashtags": string[], "postType" } ] } with exactly 2 variants (A/B). Post type: ${postType}. Keep under 1300 chars each. Apply learned lessons.`,
+        content: `You write LinkedIn text posts for personal brand growth. Return JSON: { "variants": [ { "hook", "body", "cta", "hashtags": string[], "postType" } ] } with exactly 1 variant. Post type: ${postType}. Keep under 1300 chars. Apply learned lessons.`,
       },
       {
         role: "user",
@@ -98,7 +98,7 @@ ${lessonsText}`,
     }>;
   }>(response.choices[0]?.message?.content, { variants: [] });
 
-  const variants = raw.variants.map((v) =>
+  const variants = raw.variants.slice(0, 1).map((v) =>
     buildLinkedInPost({
       hook: v.hook,
       body: v.body,

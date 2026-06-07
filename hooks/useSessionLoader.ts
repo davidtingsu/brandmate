@@ -3,7 +3,7 @@
 import { useChatSessionContext } from "@/contexts/ChatSessionContext";
 import { useBrandProfile } from "@/contexts/BrandProfileContext";
 import { findBrandProfile } from "@/lib/sessions/approved-post";
-import type { ChatMessage, ChatThread } from "@/lib/types";
+import type { ChatMessage, ChatThread, GalleryThread } from "@/lib/types";
 import { useCallback, useRef } from "react";
 
 export function useSessionLoader() {
@@ -28,7 +28,7 @@ export function useSessionLoader() {
       const res = await fetch("/api/sessions");
       const data = await res.json();
       setSessionsEnabled(Boolean(data.enabled));
-      setThreads(data.threads ?? []);
+      setThreads((data.threads ?? []) as GalleryThread[]);
     } finally {
       setLoading(false);
     }
@@ -91,7 +91,7 @@ export function useSessionLoader() {
       if (threadRes.ok) {
         const data = await threadRes.json();
         setSessionsEnabled(Boolean(data.enabled));
-        setThreads(data.threads ?? []);
+        setThreads((data.threads ?? []) as GalleryThread[]);
         const thread = (data.threads as ChatThread[] | undefined)?.find(
           (t) => t.id === sessionId
         );

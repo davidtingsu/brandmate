@@ -15,7 +15,8 @@
         "e2e-harness.sh",
         "onboarding-gate.sh",
         "diagram-image.sh",
-        "gallery-delete.sh"
+        "gallery-delete.sh",
+        "gallery-preview.sh"
       ],
       "e2e": true
     },
@@ -29,7 +30,7 @@
       "static": ["stage-chips.sh"]
     },
     "gallery": {
-      "static": ["guided-flow.sh", "gallery-delete.sh"]
+      "static": ["guided-flow.sh", "gallery-delete.sh", "gallery-preview.sh"]
     },
     "carousel": {
       "static": ["image-carousel.sh", "carousel-reference-images.sh"]
@@ -48,6 +49,8 @@
     "REQ-GALLERY-001": ["build.sh", "guided-flow.sh"],
     "REQ-GALLERY-002": ["guided-flow.sh"],
     "REQ-GALLERY-005": ["gallery-delete.sh"],
+    "REQ-GALLERY-006": ["gallery-preview.sh"],
+    "REQ-GALLERY-007": ["gallery-preview.sh"],
     "REQ-CREATE-010": ["profile-form-collapse.sh"],
     "REQ-CREATE-011": ["profile-form-collapse.sh"],
     "REQ-CREATE-012": ["stage-chips.sh"],
@@ -71,6 +74,7 @@
     "REQ-CAROUSEL-REF-004": ["carousel-reference-images.sh"],
     "REQ-CAROUSEL-REF-005": ["carousel-reference-images.sh"],
     "REQ-CAROUSEL-REF-006": ["carousel-reference-images.sh"],
+    "REQ-CAROUSEL-REF-007": ["carousel-reference-images.sh"],
     "REQ-E2E-001": ["e2e.sh", "e2e-harness.sh"],
     "REQ-MANUAL-001": ["check-manual.sh"],
     "REQ-ONBOARD-001": ["onboarding-gate.sh"],

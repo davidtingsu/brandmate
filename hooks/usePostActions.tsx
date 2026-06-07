@@ -23,6 +23,8 @@ import type {
   PostFormat,
   PostType,
 } from "@/lib/types";
+import { updatePostTitle } from "@/lib/brandmate/actions";
+import { summarizePostTitle } from "@/lib/sessions/summarize-title";
 import { useCarouselRender } from "@/hooks/useCarouselRender";
 import { useCopilotAction, useCopilotReadable } from "@copilotkit/react-core";
 import { useRouter } from "next/navigation";
@@ -55,7 +57,7 @@ export function usePostActions() {
   } = useCarouselRender();
   const router = useRouter();
   const { brandProfile, setBrandProfile } = useBrandProfile();
-  const { persistAttempt, sessionsEnabled } = useChatSessionContext();
+  const { persistAttempt, sessionsEnabled, setThreads } = useChatSessionContext();
   const { ensureSession } = useSessionLoader();
   const { lastAttempt, setLastAttempt } = useCreateFlow();
 
@@ -384,13 +386,26 @@ export function usePostActions() {
         },
         sessionId ?? undefined
       );
+
+      if (sessionId && sessionsEnabled) {
+        const title = summarizePostTitle(params.topic);
+        await updatePostTitle(sessionId, title);
+        setThreads((prev) =>
+          prev.map((t) =>
+            t.id === sessionId ? { ...t, title, displayTitle: title } : t
+          )
+        );
+      }
+
       return { ...data, attempt, weaveTraceId: data.weaveTraceId as string };
     },
     [
       ensureProfile,
       ensureSession,
       persistAttempt,
+      sessionsEnabled,
       setLastAttempt,
+      setThreads,
       streamRender,
       resetCarouselRender,
     ]
@@ -562,18 +577,11 @@ export function usePostActions() {
     name: "approvePost",
     description:
       "Step 3 only: mark the latest draft as approved and open the LinkedIn feed preview",
-    parameters: [
-      {
-        name: "variantIndex",
-        type: "number",
-        description: "0 for variant A, 1 for variant B",
-        required: false,
-      },
-    ],
-    handler: async ({ variantIndex }) => {
+    parameters: [],
+    handler: async () => {
       const attempt = lastAttemptRef.current;
       if (!attempt) throw new Error("No post to approve");
-      const sessionId = await persistApprovedPost(attempt, variantIndex ?? 0);
+      const sessionId = await persistApprovedPost(attempt, 0);
       return { sessionId, approved: true };
     },
     render: ({ status }) => {
@@ -666,7 +674,7 @@ export function usePostActions() {
 
       if (!lessonText) throw new Error("No lesson to store");
 
-      const res = await fetch("/api/agents/memory", {
+      const res = await fetch("/api/memory/store", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -774,14 +782,11 @@ export function usePostActions() {
   useCopilotAction({
     name: "copyPost",
     description: "Copy the latest generated LinkedIn post text to clipboard",
-    parameters: [
-      { name: "variantIndex", type: "number", description: "0 for A, 1 for B", required: false },
-    ],
-    handler: async ({ variantIndex }) => {
+    parameters: [],
+    handler: async () => {
       const attempt = lastAttemptRef.current;
       if (!attempt?.variants?.length) throw new Error("No post to copy");
-      const idx = variantIndex ?? 0;
-      const post = attempt.variants[idx] ?? attempt.variants[0];
+      const post = attempt.variants[0];
       const { formatPostForDisplay } = await import("@/lib/linkedin-format");
       const text = formatPostForDisplay(post);
       await navigator.clipboard.writeText(text);
