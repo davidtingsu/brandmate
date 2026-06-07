@@ -33,6 +33,10 @@ export async function generateCarouselCore(
       ? `Previous attempt scored ${input.scoreBefore}/10. Improve specifically on prior weaknesses.`
       : "";
 
+  const portraitContext = input.portraitImageUrl
+    ? "A portrait photo is provided. Choose per-slide layout dynamically."
+    : "No portrait photo — use template_content and split_before_after for all slides.";
+
   const response = await openai.chat.completions.create({
     model: MODEL,
     max_tokens: MAX_TOKENS.carousel,
@@ -48,11 +52,21 @@ export async function generateCarouselCore(
       "body": string (short caption above carousel),
       "cta": string,
       "hashtags": string[],
-      "slides": [{ "title": string, "body": string }]
+      "slides": [{ "title": string, "body": string, "layout": string }]
     }
   ]
 }
-Exactly 2 variants (A/B). Each variant must have exactly ${slideCount} slides. Slide 1 is the cover (bold title). Last slide has a CTA. Post type: ${postType}. Apply learned lessons.`,
+Exactly 2 variants (A/B). Each variant must have exactly ${slideCount} slides.
+
+Per-slide layout (pick dynamically per slide):
+- portrait_cover: full-bleed portrait + handwritten hook (usually slide 1 when portrait provided)
+- portrait_cta: portrait + CTA/handle (usually last slide)
+- portrait_all: portrait background for personal/story slides
+- template_content: aesthetic template without portrait (middle educational slides)
+- split_before_after: before/after comparison panels
+
+${portraitContext}
+Slide 1 is the cover (bold title). Last slide has a CTA. Post type: ${postType}. Apply learned lessons.`,
       },
       {
         role: "user",
@@ -75,9 +89,11 @@ ${lessonsText}`,
       body: string;
       cta?: string;
       hashtags?: string[];
-      slides: Array<{ title: string; body: string }>;
+      slides: Array<{ title: string; body: string; layout?: string }>;
     }>;
   }>(response.choices[0]?.message?.content ?? '{"variants":[]}');
+
+  const hasPortrait = Boolean(input.portraitImageUrl);
 
   const variants = raw.variants.map((v) =>
     buildLinkedInPost({
@@ -87,7 +103,7 @@ ${lessonsText}`,
       hashtags: v.hashtags,
       postType,
       format: "carousel",
-      slides: buildCarouselSlides(v.slides ?? []),
+      slides: buildCarouselSlides(v.slides ?? [], hasPortrait),
     })
   );
 

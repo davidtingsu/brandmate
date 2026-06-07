@@ -1,5 +1,6 @@
 "use client";
 
+import { CarouselRenderProgress } from "@/components/create/CarouselRenderProgress";
 import type { GeneratePostValues } from "@/components/forms/GeneratePostForm";
 import { GeneratePostForm } from "@/components/forms/GeneratePostForm";
 import { ProfileForm } from "@/components/forms/ProfileForm";
@@ -36,6 +37,7 @@ export function GuidedStepInline() {
     persistProfile,
     renderAttemptCards,
     handlePreviewInFeed,
+    carouselRenderState,
   } = usePostActionsContext();
 
   const [generating, setGenerating] = useState(false);
@@ -92,6 +94,7 @@ export function GuidedStepInline() {
           loading={generating}
           onSubmit={handleGenerateSubmit}
         />
+        <CarouselRenderProgress state={carouselRenderState} />
         {lastAttempt && (
           <div className="mt-4 space-y-2">
             {renderAttemptCards(lastAttempt, lastWeaveTraceId, {

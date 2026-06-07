@@ -22,6 +22,12 @@ export const DEFAULT_SLIDE_COUNT = 7;
 export const MIN_SLIDE_COUNT = 5;
 export const MAX_SLIDE_COUNT = 10;
 
+export const CAROUSEL_PORTRAIT_SIZE = { width: 1080, height: 1350 } as const;
+export const CAROUSEL_HANDWRITTEN_FONT =
+  "Brush Script MT, Segoe Script, Caveat, cursive";
+export const CAROUSEL_EXAMPLE_PORTRAIT =
+  "/examples/carousel-portrait-example.jpg";
+
 export const IMAGE_MODEL = process.env.OPENAI_IMAGE_MODEL ?? "gpt-image-1";
 export const SUPABASE_STORAGE_BUCKET =
   process.env.SUPABASE_STORAGE_BUCKET ?? "post-images";

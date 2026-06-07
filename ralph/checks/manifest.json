@@ -9,7 +9,8 @@
         "profile-form-collapse.sh",
         "stage-chips.sh",
         "copilotkit-route.sh",
-        "config-budget.sh"
+        "config-budget.sh",
+        "image-carousel.sh"
       ]
     },
     "create": {
@@ -23,6 +24,9 @@
     },
     "gallery": {
       "static": ["guided-flow.sh"]
+    },
+    "carousel": {
+      "static": ["image-carousel.sh"]
     }
   },
   "requirements": {
@@ -38,6 +42,14 @@
     "REQ-CHIPS-002": ["stage-chips.sh"],
     "REQ-CHIPS-003": ["stage-chips.sh"],
     "REQ-CHIPS-004": ["stage-chips.sh"],
-    "REQ-CHIPS-005": ["stage-chips.sh"]
+    "REQ-CHIPS-005": ["stage-chips.sh"],
+    "REQ-CAROUSEL-IMG-001": ["image-carousel.sh"],
+    "REQ-CAROUSEL-IMG-002": ["image-carousel.sh"],
+    "REQ-CAROUSEL-IMG-003": ["image-carousel.sh"],
+    "REQ-CAROUSEL-IMG-004": ["image-carousel.sh"],
+    "REQ-CAROUSEL-IMG-005": ["image-carousel.sh"],
+    "REQ-CAROUSEL-IMG-006": ["image-carousel.sh"],
+    "REQ-CAROUSEL-IMG-007": ["image-carousel.sh"],
+    "REQ-CAROUSEL-IMG-008": ["image-carousel.sh"]
   }
 }

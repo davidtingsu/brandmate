@@ -35,6 +35,7 @@ Inspired by the [Ralph Wiggum loop](https://ghuntley.com/ralph/).
 ./ralph/scripts/verify.sh --scope create
 ./ralph/scripts/verify.sh --scope profile
 ./ralph/scripts/verify.sh --scope chips
+./ralph/scripts/verify.sh --scope carousel
 ```
 
 ## Adding a requirement

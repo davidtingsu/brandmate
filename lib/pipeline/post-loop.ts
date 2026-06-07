@@ -260,6 +260,7 @@ export async function runOrchestratePostLoop(
       postType,
       slideCount: input.slideCount,
       scoreBefore: input.scoreBefore,
+      portraitImageUrl: input.portraitImageUrl,
     });
     variants = generated.variants;
   } else {

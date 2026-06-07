@@ -1,10 +1,34 @@
 import type {
   CarouselSlide,
+  CarouselSlideLayout,
   LinkedInPost,
   PostFormat,
   PostImage,
   PostType,
 } from "./types";
+
+const VALID_LAYOUTS: CarouselSlideLayout[] = [
+  "portrait_cover",
+  "portrait_cta",
+  "portrait_all",
+  "template_content",
+  "split_before_after",
+];
+
+export function normalizeSlideLayout(
+  layout: string | undefined,
+  index: number,
+  total: number,
+  hasPortrait: boolean
+): CarouselSlideLayout {
+  if (layout && VALID_LAYOUTS.includes(layout as CarouselSlideLayout)) {
+    return layout as CarouselSlideLayout;
+  }
+  if (index === 0 && hasPortrait) return "portrait_cover";
+  if (index === total - 1 && hasPortrait) return "portrait_cta";
+  if (index % 2 === 1) return "split_before_after";
+  return "template_content";
+}
 
 export function formatPostForDisplay(post: LinkedInPost): string {
   const tags = post.hashtags
@@ -64,11 +88,15 @@ export function buildLinkedInPost(raw: {
 }
 
 export function buildCarouselSlides(
-  slides: Array<{ title: string; body: string }>
+  slides: Array<{ title: string; body: string; layout?: string }>,
+  hasPortrait = false
 ): CarouselSlide[] {
+  const total = slides.length;
   return slides.map((s, index) => ({
     index,
     title: s.title,
     body: s.body,
+    layout: normalizeSlideLayout(s.layout, index, total, hasPortrait),
+    pngStatus: "pending" as const,
   }));
 }

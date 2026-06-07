@@ -73,34 +73,52 @@ export function LinkedInFeedPost({
                 key={slide.index}
                 className="w-[88%] shrink-0 snap-center sm:w-[80%]"
               >
-                <div
-                  className={`relative flex h-56 flex-col justify-between overflow-hidden rounded-lg p-5 text-white ${
-                    slide.index === 0
-                      ? "bg-gradient-to-br from-slate-800 via-linkedin to-blue-600"
-                      : "bg-gradient-to-br from-slate-700 to-slate-900"
-                  }`}
-                >
-                  <div>
-                    {slide.index === 0 && topic && (
-                      <p className="mb-2 text-xs text-white/80">
-                        {topic} · {slides.length} pages
-                      </p>
-                    )}
-                    <h4 className="text-base font-bold leading-tight">
-                      {slide.title}
-                    </h4>
-                    <p className="mt-2 text-sm leading-relaxed text-white/90">
-                      {slide.body}
-                    </p>
-                  </div>
-                  {branding && (
-                    <PostBrandingOverlay
-                      profile={profile}
-                      branding={branding}
-                      className="mt-3 self-start"
+                {slide.imageUrl ? (
+                  <div className="relative aspect-[4/5] overflow-hidden rounded-lg bg-slate-100">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={slide.imageUrl}
+                      alt={`Slide ${slide.index + 1}: ${slide.title}`}
+                      className="h-full w-full object-cover"
                     />
-                  )}
-                </div>
+                    {branding && (
+                      <PostBrandingOverlay
+                        profile={profile}
+                        branding={branding}
+                        className="absolute bottom-3 left-3"
+                      />
+                    )}
+                  </div>
+                ) : (
+                  <div
+                    className={`relative flex aspect-[4/5] flex-col justify-between overflow-hidden rounded-lg p-5 text-white ${
+                      slide.index === 0
+                        ? "bg-gradient-to-br from-slate-800 via-linkedin to-blue-600"
+                        : "bg-gradient-to-br from-slate-700 to-slate-900"
+                    }`}
+                  >
+                    <div>
+                      {slide.index === 0 && topic && (
+                        <p className="mb-2 text-xs text-white/80">
+                          {topic} · {slides.length} pages
+                        </p>
+                      )}
+                      <h4 className="text-base font-bold leading-tight">
+                        {slide.title}
+                      </h4>
+                      <p className="mt-2 text-sm leading-relaxed text-white/90">
+                        {slide.body}
+                      </p>
+                    </div>
+                    {branding && (
+                      <PostBrandingOverlay
+                        profile={profile}
+                        branding={branding}
+                        className="mt-3 self-start"
+                      />
+                    )}
+                  </div>
+                )}
               </div>
             ))}
           </div>

@@ -20,6 +20,7 @@ import type {
   PostFormat,
   PostType,
 } from "@/lib/types";
+import { useCarouselRender } from "@/hooks/useCarouselRender";
 import { useCopilotAction, useCopilotReadable } from "@copilotkit/react-core";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef } from "react";
@@ -32,6 +33,7 @@ export interface GeneratePostParams {
   slideCount?: number;
   postType?: PostType;
   imageUrl?: string;
+  portraitImageUrl?: string;
   includeHandle?: boolean;
   includeProfileImage?: boolean;
   branding?: PostBrandingOptions;
@@ -43,6 +45,11 @@ export interface RenderAttemptCardsOptions {
 }
 
 export function usePostActions() {
+  const {
+    carouselRenderState,
+    streamRender,
+    resetCarouselRender,
+  } = useCarouselRender();
   const router = useRouter();
   const { brandProfile, setBrandProfile } = useBrandProfile();
   const { persistAttempt, sessionsEnabled } = useChatSessionContext();
@@ -218,6 +225,10 @@ export function usePostActions() {
         attemptCounterRef.current += 1;
       }
 
+      if (postFormat === "carousel") {
+        resetCarouselRender();
+      }
+
       const res = await fetch("/api/agents/orchestrate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -231,6 +242,7 @@ export function usePostActions() {
           imageStyle: params.imageStyle,
           slideCount: params.slideCount,
           imageUrl: params.imageUrl,
+          portraitImageUrl: params.portraitImageUrl,
           branding,
           scoreBefore: params.isRetry
             ? lastAttemptRef.current?.judgeScore
@@ -242,10 +254,30 @@ export function usePostActions() {
         throw new Error(err.error ?? "Failed to create post");
       }
       const data = await res.json();
-      const attempt = {
+      let attempt = {
         ...(data.attempt as PostAttempt),
         branding: branding ?? (data.attempt as PostAttempt).branding,
       };
+
+      if (
+        postFormat === "carousel" &&
+        attempt.variants[0]?.slides?.length
+      ) {
+        const renderedSlides = await streamRender({
+          slides: attempt.variants[0].slides!,
+          portraitImageUrl: params.portraitImageUrl,
+          topic: params.topic,
+          brandProfile: profile,
+          branding,
+        });
+        attempt = {
+          ...attempt,
+          variants: attempt.variants.map((v, i) =>
+            i === 0 ? { ...v, slides: renderedSlides } : v
+          ),
+        };
+      }
+
       lastAttemptRef.current = attempt;
       setLastAttempt(attempt, data.weaveTraceId as string | undefined);
       const sessionId = await ensureSession();
@@ -258,7 +290,14 @@ export function usePostActions() {
       );
       return { ...data, attempt, weaveTraceId: data.weaveTraceId as string };
     },
-    [ensureProfile, ensureSession, persistAttempt, setLastAttempt]
+    [
+      ensureProfile,
+      ensureSession,
+      persistAttempt,
+      setLastAttempt,
+      streamRender,
+      resetCarouselRender,
+    ]
   );
 
   const generatePost = useCallback(
@@ -645,5 +684,6 @@ export function usePostActions() {
     persistProfile,
     renderAttemptCards,
     handlePreviewInFeed,
+    carouselRenderState,
   };
 }

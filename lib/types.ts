@@ -32,11 +32,26 @@ export interface PostImage {
   source?: "generated" | "uploaded";
 }
 
+export type CarouselSlideLayout =
+  | "portrait_cover"
+  | "portrait_cta"
+  | "portrait_all"
+  | "template_content"
+  | "split_before_after";
+
+export type CarouselSlidePngStatus =
+  | "pending"
+  | "rendering"
+  | "done"
+  | "error";
+
 export interface CarouselSlide {
   index: number;
   title: string;
   body: string;
+  layout?: CarouselSlideLayout;
   imageUrl?: string;
+  pngStatus?: CarouselSlidePngStatus;
 }
 
 export interface LinkedInPost {
@@ -113,6 +128,7 @@ export interface CarouselGenerateInput {
   postType?: PostType;
   slideCount?: number;
   scoreBefore?: number;
+  portraitImageUrl?: string;
 }
 
 export interface CarouselGenerateOutput {
@@ -156,10 +172,29 @@ export interface OrchestrateInput {
   includeImage?: boolean;
   imageStyle?: string;
   imageUrl?: string;
+  portraitImageUrl?: string;
+  carouselAspect?: "4:5";
   slideCount?: number;
   scoreBefore?: number;
   niche?: string;
   branding?: PostBrandingOptions;
+}
+
+export interface CarouselRenderInput {
+  slides: CarouselSlide[];
+  portraitImageUrl?: string;
+  topic?: string;
+  brandProfile?: BrandProfile;
+  branding?: PostBrandingOptions;
+}
+
+export interface CarouselRenderProgressEvent {
+  type: "progress" | "slide_done" | "complete" | "error";
+  slideIndex?: number;
+  total?: number;
+  imageUrl?: string;
+  slides?: CarouselSlide[];
+  error?: string;
 }
 
 export interface OrchestrateOutput {

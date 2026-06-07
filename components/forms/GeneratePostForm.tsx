@@ -1,13 +1,15 @@
 "use client";
 
+import { CAROUSEL_EXAMPLE_PORTRAIT } from "@/lib/config";
 import type { PostBrandingOptions, PostFormat } from "@/lib/types";
-import { useState } from "react";
+import { useRef, useState } from "react";
 
 export interface GeneratePostValues {
   topic: string;
   format: PostFormat;
   includeImage: boolean;
   slideCount: number;
+  portraitImageUrl?: string;
   branding?: PostBrandingOptions;
 }
 
@@ -31,7 +33,10 @@ export function GeneratePostForm({
   const [slideCount, setSlideCount] = useState(7);
   const [includeHandle, setIncludeHandle] = useState(true);
   const [includeProfileImage, setIncludeProfileImage] = useState(true);
+  const [portraitImageUrl, setPortraitImageUrl] = useState<string | undefined>();
+  const [uploadingPortrait, setUploadingPortrait] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const portraitInputRef = useRef<HTMLInputElement>(null);
 
   const showBrandingToggles = format === "carousel" || format === "image";
   const brandingTarget = format === "carousel" ? "slides" : "image";
@@ -53,6 +58,8 @@ export function GeneratePostForm({
         format: format === "carousel" ? "carousel" : "text",
         includeImage: format === "image",
         slideCount,
+        portraitImageUrl:
+          format === "carousel" ? portraitImageUrl : undefined,
         branding: showBrandingToggles
           ? { includeHandle, includeProfileImage }
           : undefined,
@@ -108,19 +115,100 @@ export function GeneratePostForm({
       </div>
 
       {format === "carousel" && (
-        <div className="mb-3 flex items-center gap-2 text-sm text-slate-600">
-          <label htmlFor="slide-count">Slides:</label>
-          <input
-            id="slide-count"
-            type="number"
-            min={5}
-            max={10}
-            value={slideCount}
-            onChange={(e) => setSlideCount(Number(e.target.value))}
-            className="w-16 rounded border border-slate-200 px-2 py-1 text-sm"
-            disabled={loading}
-          />
-        </div>
+        <>
+          <div className="mb-3 flex items-center gap-2 text-sm text-slate-600">
+            <label htmlFor="slide-count">Slides:</label>
+            <input
+              id="slide-count"
+              type="number"
+              min={5}
+              max={10}
+              value={slideCount}
+              onChange={(e) => setSlideCount(Number(e.target.value))}
+              className="w-16 rounded border border-slate-200 px-2 py-1 text-sm"
+              disabled={loading}
+            />
+          </div>
+          <div className="mb-3 rounded-lg border border-slate-100 bg-slate-50 p-3">
+            <p className="mb-2 text-xs font-medium text-slate-600">
+              Portrait photo (4:5 recommended)
+            </p>
+            <div className="flex flex-wrap items-center gap-3">
+              {portraitImageUrl && (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={portraitImageUrl}
+                  alt="Portrait preview"
+                  className="h-20 w-16 rounded-lg object-cover ring-2 ring-slate-200"
+                />
+              )}
+              <input
+                ref={portraitInputRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                disabled={loading || uploadingPortrait}
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (!file) return;
+                  void (async () => {
+                    setUploadingPortrait(true);
+                    setError(null);
+                    try {
+                      const formData = new FormData();
+                      formData.append("file", file);
+                      const res = await fetch("/api/agents/image", {
+                        method: "POST",
+                        body: formData,
+                      });
+                      if (!res.ok) throw new Error("Upload failed");
+                      const { image } = (await res.json()) as {
+                        image: { url: string };
+                      };
+                      setPortraitImageUrl(image.url);
+                    } catch {
+                      const reader = new FileReader();
+                      reader.onload = () =>
+                        setPortraitImageUrl(reader.result as string);
+                      reader.readAsDataURL(file);
+                    } finally {
+                      setUploadingPortrait(false);
+                      if (portraitInputRef.current) {
+                        portraitInputRef.current.value = "";
+                      }
+                    }
+                  })();
+                }}
+              />
+              <button
+                type="button"
+                onClick={() => portraitInputRef.current?.click()}
+                disabled={loading || uploadingPortrait}
+                className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+              >
+                {uploadingPortrait ? "Uploading…" : "Upload portrait"}
+              </button>
+              <button
+                type="button"
+                onClick={() => setPortraitImageUrl(CAROUSEL_EXAMPLE_PORTRAIT)}
+                disabled={loading}
+                className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-linkedin hover:bg-blue-50"
+              >
+                Use example
+              </button>
+              {portraitImageUrl && (
+                <button
+                  type="button"
+                  onClick={() => setPortraitImageUrl(undefined)}
+                  disabled={loading}
+                  className="text-xs text-slate-500 hover:text-red-600"
+                >
+                  Remove
+                </button>
+              )}
+            </div>
+          </div>
+        </>
       )}
 
       {showBrandingToggles && (

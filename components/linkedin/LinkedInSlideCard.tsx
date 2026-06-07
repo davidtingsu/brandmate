@@ -20,9 +20,29 @@ export function LinkedInSlideCard({
 }: LinkedInSlideCardProps) {
   const isCover = slide.index === 0;
 
+  if (slide.imageUrl) {
+    return (
+      <div className="relative aspect-[4/5] w-full overflow-hidden rounded-lg bg-slate-100">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={slide.imageUrl}
+          alt={`Slide ${slide.index + 1}: ${slide.title}`}
+          className="h-full w-full object-cover"
+        />
+        {branding && profile && (
+          <PostBrandingOverlay
+            profile={profile}
+            branding={branding}
+            className="absolute bottom-3 left-3"
+          />
+        )}
+      </div>
+    );
+  }
+
   return (
     <div
-      className={`relative flex h-64 w-full flex-col justify-between overflow-hidden rounded-lg p-6 text-white ${
+      className={`relative flex aspect-[4/5] w-full flex-col justify-between overflow-hidden rounded-lg p-6 text-white ${
         isCover
           ? "bg-gradient-to-br from-slate-800 via-linkedin to-blue-600"
           : "bg-gradient-to-br from-slate-700 to-slate-900"

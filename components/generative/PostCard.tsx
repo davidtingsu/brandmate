@@ -34,6 +34,25 @@ export function PostCard({
   if (!post) return null;
 
   const text = formatPostForDisplay(post);
+  const slides = post.slides ?? [];
+  const allSlidesRendered =
+    post.format === "carousel" &&
+    slides.length > 0 &&
+    slides.every((s) => s.imageUrl);
+
+  const downloadSlides = async () => {
+    for (const slide of slides) {
+      if (!slide.imageUrl) continue;
+      const res = await fetch(slide.imageUrl);
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `carousel-slide-${slide.index + 1}.png`;
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+  };
 
   return (
     <div className="my-3 rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
@@ -94,22 +113,33 @@ export function PostCard({
         </pre>
       )}
 
-      <div className="mt-3 flex items-center justify-between text-xs text-slate-500">
+      <div className="mt-3 flex flex-wrap items-center justify-between gap-2 text-xs text-slate-500">
         <span>
           {post.characterCount} chars · {post.postType} · {post.format}
           {post.image ? " · image" : ""}
           {post.slides?.length ? ` · ${post.slides.length} slides` : ""}
         </span>
-        <button
-          type="button"
-          onClick={() => {
-            void navigator.clipboard.writeText(text);
-            onCopy?.(text);
-          }}
-          className="rounded-md bg-linkedin px-3 py-1.5 text-xs font-medium text-white hover:bg-blue-700"
-        >
-          Copy post
-        </button>
+        <div className="flex flex-wrap gap-2">
+          {allSlidesRendered && (
+            <button
+              type="button"
+              onClick={() => void downloadSlides()}
+              className="rounded-md border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50"
+            >
+              Download slides
+            </button>
+          )}
+          <button
+            type="button"
+            onClick={() => {
+              void navigator.clipboard.writeText(text);
+              onCopy?.(text);
+            }}
+            className="rounded-md bg-linkedin px-3 py-1.5 text-xs font-medium text-white hover:bg-blue-700"
+          >
+            Copy post
+          </button>
+        </div>
       </div>
     </div>
   );
