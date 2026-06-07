@@ -2,7 +2,7 @@
 
 **Your LinkedIn brand coach that learns from every draft.**
 
-A chat-only [CopilotKit](https://copilotkit.ai) app for LinkedIn personal brand growth. Posts, judge scores, learned lessons, and retry buttons appear as **generative UI cards** inline in the conversation.
+A LinkedIn personal brand coach with a **post gallery** home, **CopilotKit chat** (forms embedded as generative UI), and a **LinkedIn feed preview** route for approved drafts. A dedicated **diagram_explainer** agent renders ByteByteGo-style system diagrams when explaining technical concepts.
 
 **Observability:** [W&B Weave](https://docs.wandb.ai/weave) traces every agent step (generate → judge → memory → retry), logs scores and human feedback, and tracks cost/latency.
 
@@ -15,17 +15,17 @@ Deploy to Vercel — see [Deploy](#deploy-to-vercel) below. After deploy, your U
 ## Architecture
 
 ```
-User → CopilotChat → useCopilotAction
-  → orchestratePostLoop (Weave)
+/ (gallery) → /create (CopilotChat + HITL forms)
+  → /api/agents/orchestrate (Weave)
   → searchMemories (Redis KNN)
   → generatePost / judgePost / summarizeLesson (gpt-4o-mini)
-  → Generative UI cards (PostCard, AttemptCard, LessonCard)
-  → storeLesson in Redis → retry improves next attempt
+  → Generative cards (PostCard, AttemptCard, LessonCard)
+  → Preview in feed → /preview/[sessionId]
 ```
 
 | Layer | Tool | Role |
 |-------|------|------|
-| UI | CopilotKit `CopilotChat` | Entire product — chat + generative cards |
+| UI | Gallery + CopilotKit chat + feed preview | Profile, generate, approve, preview |
 | Runtime memory | Redis Stack vector search | Store/retrieve voice lessons |
 | Observability | W&B Weave | Trace ops, log scores, track cost |
 | LLM | OpenAI `gpt-4o-mini` via `wrapOpenAI` | Generation, judging, memory |
@@ -117,12 +117,15 @@ Traced ops: `orchestratePostLoop`, `searchMemories`, `generatePost`, `judgePost`
 ## Project structure
 
 ```
-app/BrandMateApp.tsx      # Chat + session sidebar + CopilotKit
+app/page.tsx              # Post gallery home
+app/create/page.tsx       # CopilotKit chat + embedded forms
+app/preview/[sessionId]/  # LinkedIn feed preview (no chat)
 hooks/usePostActions.tsx  # CopilotKit actions + generative render
-hooks/useGenerativeUI.tsx # HITL format picker + suggestions
+hooks/useDiagramAgent.tsx # diagram_explainer dispatch
 components/linkedin/      # LinkedIn feed preview mocks
-components/generative/    # PostCard, AttemptCard, LessonCard, etc.
+components/generative/    # PostCard, SystemDiagramCard, etc.
 lib/sessions/             # Supabase session store
+public/brandmate-logo.png # App icon
 lib/weave/ops.ts          # All weave.op functions
 lib/redis/                # Vector lesson store
 supabase/migrations/      # chat_threads + chat_messages SQL
