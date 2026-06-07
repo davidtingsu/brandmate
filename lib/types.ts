@@ -120,6 +120,7 @@ export interface PostAttempt {
   scoreAfter?: number;
   humanFeedback?: HumanFeedbackType;
   branding?: PostBrandingOptions;
+  portraitImageUrl?: string;
   systemDiagram?: SystemDiagram;
 }
 

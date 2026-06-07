@@ -19,6 +19,7 @@ export function deriveGenerateValuesFromAttempt(
     includeImage,
     slideCount: variant?.slides?.length ?? 7,
     branding: attempt.branding,
+    portraitImageUrl: attempt.portraitImageUrl,
   };
 }
 
@@ -37,5 +38,6 @@ export function deriveGenerateParamsFromAttempt(
     branding: values.branding,
     includeHandle: values.branding?.includeHandle,
     includeProfileImage: values.branding?.includeProfileImage,
+    portraitImageUrl: values.portraitImageUrl,
   };
 }

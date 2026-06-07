@@ -87,9 +87,19 @@ ${handleNote}
 Portrait LinkedIn carousel slide (4:5). Legible text only — no paragraph blocks outside the designed areas.`;
 }
 
-function feedbackBlock(userFeedback?: string): string {
+export function isFeedbackPortraitMode(input: {
+  userFeedback?: string;
+  portraitImageUrl?: string;
+}): boolean {
+  return Boolean(input.userFeedback?.trim()) && Boolean(input.portraitImageUrl);
+}
+
+function feedbackBlock(userFeedback?: string, portraitOnly = false): string {
   const revision = buildRevisionPromptBlocks({ userFeedback });
   if (!revision) return "";
+  if (portraitOnly) {
+    return `${revision}\n\n`;
+  }
   return `${revision}\n\nOn any conflict between user feedback and Image 1 styling, follow the user.\n\n`;
 }
 
@@ -105,9 +115,22 @@ export function buildSlideImagePrompt(input: {
   refIndex: number;
   includesPortrait: boolean;
   compositingMode?: boolean;
+  feedbackPortraitMode?: boolean;
   userFeedback?: string;
 }): string {
   const content = slideContentBlock(input);
+
+  if (input.feedbackPortraitMode) {
+    const revision = feedbackBlock(input.userFeedback, true);
+    return `${revision}Image 1 is the author's portrait photo.
+
+STRICT — preserve the person's exact facial identity: eyes, nose, mouth, jawline, skin tone, hair, and expression. Do not redraw, beautify, or alter the face.
+
+Design a NEW LinkedIn carousel slide (4:5) from the slide copy below. User feedback governs all visual styling (background, overlays, overlay text, doodles, layout). Do not mimic any template reference image.
+
+${content}`;
+  }
+
   const revision = feedbackBlock(input.userFeedback);
 
   if (input.includesPortrait && input.compositingMode) {
@@ -189,8 +212,12 @@ type PortraitEditImages = [
 const GPT_IMAGE_15 = "gpt-image-1.5";
 const GPT_IMAGE_1 = "gpt-image-1";
 
-function usesInputFidelity(model: string, compositing: boolean): boolean {
-  return compositing && model === GPT_IMAGE_15;
+function usesInputFidelity(
+  model: string,
+  compositing: boolean,
+  portraitOnly = false
+): boolean {
+  return model === GPT_IMAGE_15 && (compositing || portraitOnly);
 }
 
 async function runCarouselImageEdit(input: {
@@ -198,6 +225,7 @@ async function runCarouselImageEdit(input: {
   image: Awaited<ReturnType<typeof loadCarouselReference>> | PortraitEditImages;
   prompt: string;
   compositing: boolean;
+  portraitOnly?: boolean;
 }) {
   const openai = getOpenAI();
   const base = {
@@ -208,7 +236,7 @@ async function runCarouselImageEdit(input: {
     quality: "high" as const,
   };
 
-  if (usesInputFidelity(input.model, input.compositing)) {
+  if (usesInputFidelity(input.model, input.compositing, input.portraitOnly)) {
     return openai.images.edit({
       ...base,
       input_fidelity: "high",
@@ -223,8 +251,10 @@ async function editWithFallback(input: {
   image: Awaited<ReturnType<typeof loadCarouselReference>> | PortraitEditImages;
   prompt: string;
   compositing: boolean;
+  portraitOnly?: boolean;
 }) {
-  const fallbacks = input.compositing
+  const useFaceFallbacks = input.compositing || input.portraitOnly;
+  const fallbacks = useFaceFallbacks
     ? [input.primaryModel, GPT_IMAGE_15, GPT_IMAGE_1].filter(
         (m, i, arr) => arr.indexOf(m) === i
       )
@@ -238,6 +268,7 @@ async function editWithFallback(input: {
         image: input.image,
         prompt: input.prompt,
         compositing: input.compositing,
+        portraitOnly: input.portraitOnly,
       });
     } catch (err) {
       lastError = err;
@@ -271,8 +302,12 @@ export async function generateCarouselSlideImage(input: {
     refIndex,
   });
 
+  const feedbackPortraitMode = isFeedbackPortraitMode(input);
+
   const compositingMode =
-    includesPortrait && Boolean(input.portraitImageUrl);
+    !feedbackPortraitMode &&
+    includesPortrait &&
+    Boolean(input.portraitImageUrl);
 
   const prompt = buildSlideImagePrompt({
     slide: input.slide,
@@ -284,20 +319,29 @@ export async function generateCarouselSlideImage(input: {
     refIndex,
     includesPortrait,
     compositingMode,
+    feedbackPortraitMode,
   });
-
-  const referenceImage = await loadCarouselReference(refIndex);
 
   let image:
     | Awaited<ReturnType<typeof loadCarouselReference>>
-    | PortraitEditImages = referenceImage;
+    | PortraitEditImages;
 
-  if (compositingMode && input.portraitImageUrl) {
+  if (feedbackPortraitMode && input.portraitImageUrl) {
     const portraitBuf = await loadImageBuffer(input.portraitImageUrl);
-    const portraitFile = await toFile(portraitBuf, "portrait.jpg", {
+    image = await toFile(portraitBuf, "portrait.jpg", {
       type: "image/jpeg",
     });
-    image = [referenceImage, portraitFile];
+  } else {
+    const referenceImage = await loadCarouselReference(refIndex);
+    image = referenceImage;
+
+    if (compositingMode && input.portraitImageUrl) {
+      const portraitBuf = await loadImageBuffer(input.portraitImageUrl);
+      const portraitFile = await toFile(portraitBuf, "portrait.jpg", {
+        type: "image/jpeg",
+      });
+      image = [referenceImage, portraitFile];
+    }
   }
 
   const response = await editWithFallback({
@@ -305,9 +349,12 @@ export async function generateCarouselSlideImage(input: {
     image,
     prompt,
     compositing: compositingMode,
+    portraitOnly: feedbackPortraitMode,
   });
 
   const buffer = Buffer.from(extractB64(response.data), "base64");
-  const filename = `slide-${Date.now()}-${input.slide.index}-ref${refIndex}.png`;
+  const filename = feedbackPortraitMode
+    ? `slide-${Date.now()}-${input.slide.index}-portrait.png`
+    : `slide-${Date.now()}-${input.slide.index}-ref${refIndex}.png`;
   return uploadSlidePng(buffer, filename);
 }

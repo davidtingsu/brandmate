@@ -330,6 +330,8 @@ export function usePostActions() {
       let attempt = {
         ...(data.attempt as PostAttempt),
         branding: branding ?? (data.attempt as PostAttempt).branding,
+        portraitImageUrl:
+          postFormat === "carousel" ? portraitImageUrl : undefined,
       };
 
       lastAttemptRef.current = attempt;
