@@ -59,12 +59,16 @@ export function useSessionLoader() {
       const threadRes = await fetch("/api/sessions");
       if (threadRes.ok) {
         const data = await threadRes.json();
+        setSessionsEnabled(Boolean(data.enabled));
+        setThreads(data.threads ?? []);
         const thread = (data.threads as ChatThread[] | undefined)?.find(
           (t) => t.id === sessionId
         );
         if (thread) {
           setActiveSessionId(thread.id);
           setCopilotThreadId(thread.copilot_thread_id ?? crypto.randomUUID());
+        } else {
+          setActiveSessionId(sessionId);
         }
       }
 
@@ -73,7 +77,13 @@ export function useSessionLoader() {
       if (profile) setBrandProfile(profile);
       return messages;
     },
-    [setActiveSessionId, setBrandProfile, setCopilotThreadId]
+    [
+      setActiveSessionId,
+      setBrandProfile,
+      setCopilotThreadId,
+      setSessionsEnabled,
+      setThreads,
+    ]
   );
 
   return {

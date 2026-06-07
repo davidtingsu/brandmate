@@ -37,21 +37,37 @@ export function CreatePostChat() {
   const searchParams = useSearchParams();
   const sessionParam = searchParams.get("session");
   const { copilotThreadId } = useChatSessionContext();
-  const { loadSession, createSession, loading } = useSessionLoader();
+  const { loadSession, createSession, loadSessions } = useSessionLoader();
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
+    let cancelled = false;
+
     void (async () => {
+      setReady(false);
+      await loadSessions();
+
       if (sessionParam) {
         await loadSession(sessionParam);
       } else {
-        await createSession();
+        const sessionId = await createSession();
+        if (sessionId) {
+          router.replace(`/create?session=${sessionId}`);
+          return;
+        }
       }
-      setReady(true);
-    })();
-  }, [sessionParam, loadSession, createSession]);
 
-  if (loading || !ready) {
+      if (!cancelled) {
+        setReady(true);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [sessionParam, loadSession, createSession, loadSessions, router]);
+
+  if (!ready) {
     return (
       <main className="flex min-h-screen items-center justify-center text-sm text-slate-500">
         Loading chat…

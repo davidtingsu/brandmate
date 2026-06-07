@@ -1,3 +1,4 @@
+import { BrandMateProviders } from "@/components/providers/BrandMateProviders";
 import type { Metadata } from "next";
 import "@copilotkit/react-ui/styles.css";
 import "./globals.css";
@@ -19,7 +20,9 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className="min-h-screen antialiased">{children}</body>
+      <body className="min-h-screen antialiased">
+        <BrandMateProviders>{children}</BrandMateProviders>
+      </body>
     </html>
   );
 }
