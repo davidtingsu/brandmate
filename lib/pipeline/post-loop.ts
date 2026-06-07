@@ -8,6 +8,7 @@ import {
 import { parseModelJson } from "@/lib/parse-model-json";
 import { generateCarouselCore } from "@/lib/pipeline/carousel-gen";
 import { generatePostImageCore } from "@/lib/pipeline/image-gen";
+import { buildRevisionPromptBlocks } from "@/lib/pipeline/revision-prompt";
 import { buildLinkedInPost } from "@/lib/linkedin-format";
 import { searchMemories } from "@/lib/redis/vector-search";
 import { storeLesson as storeLessonInRedis } from "@/lib/redis/lesson-store";
@@ -59,10 +60,11 @@ export async function generatePostCore(
       ? input.lessons.map((l, i) => `${i + 1}. ${l.lesson}`).join("\n")
       : "No prior lessons.";
 
-  const scoreContext =
-    input.scoreBefore !== undefined
-      ? `Previous attempt scored ${input.scoreBefore}/10. Improve specifically on prior weaknesses.`
-      : "";
+  const revisionContext = buildRevisionPromptBlocks({
+    userFeedback: input.userFeedback,
+    judgeRevisionContext: input.judgeRevisionContext,
+    scoreBefore: input.scoreBefore,
+  });
 
   const response = await openai.chat.completions.create({
     model: MODEL,
@@ -80,9 +82,7 @@ Brand: ${input.brandProfile.name} | Niche: ${input.brandProfile.niche}
 Audience: ${input.brandProfile.audience}
 Voice: ${input.brandProfile.voice}
 Attempt: ${input.attemptNumber}
-${scoreContext}
-
-Learned lessons:
+${revisionContext ? `${revisionContext}\n\n` : ""}Learned lessons:
 ${lessonsText}`,
       },
     ],
@@ -279,6 +279,8 @@ export async function runOrchestratePostLoop(
       slideCount: input.slideCount,
       scoreBefore: input.scoreBefore,
       portraitImageUrl: input.portraitImageUrl,
+      userFeedback: input.userFeedback,
+      judgeRevisionContext: input.judgeRevisionContext,
     });
     variants = generated.variants;
   } else {
@@ -290,6 +292,8 @@ export async function runOrchestratePostLoop(
       postType,
       format: "text",
       scoreBefore: input.scoreBefore,
+      userFeedback: input.userFeedback,
+      judgeRevisionContext: input.judgeRevisionContext,
     });
     variants = await attachImageToVariants(
       generated.variants,
@@ -316,6 +320,7 @@ export async function runOrchestratePostLoop(
     judgeScore: judged.score,
     problems: judged.problems,
     breakdown: judged.breakdown,
+    judgeFeedback: judged.feedback,
     retrievedMemories: lessons,
     scoreBefore: input.scoreBefore,
     scoreAfter: judged.score,

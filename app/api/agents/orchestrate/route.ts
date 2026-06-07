@@ -21,6 +21,8 @@ export async function POST(req: NextRequest) {
       slideCount,
       scoreBefore,
       branding,
+      userFeedback,
+      judgeRevisionContext,
     }: {
       topic: string;
       brandProfile: BrandProfile;
@@ -34,6 +36,8 @@ export async function POST(req: NextRequest) {
       slideCount?: number;
       scoreBefore?: number;
       branding?: PostBrandingOptions;
+      userFeedback?: string;
+      judgeRevisionContext?: string;
     } = body;
 
     if (!topic || !brandProfile?.name) {
@@ -56,6 +60,8 @@ export async function POST(req: NextRequest) {
       slideCount,
       scoreBefore,
       branding,
+      userFeedback,
+      judgeRevisionContext,
     });
 
     return NextResponse.json(result);

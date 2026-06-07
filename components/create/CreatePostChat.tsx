@@ -3,6 +3,7 @@
 import { BrandMateRenderMessage } from "@/components/chat/BrandMateRenderMessage";
 import { ChipsOnlyInput } from "@/components/create/ChipsOnlyInput";
 import { CreateFlowStepper } from "@/components/create/CreateFlowStepper";
+import { StageSuggestionsList } from "@/components/create/StageSuggestionsList";
 import { CreatePostSkeleton } from "@/components/create/CreatePostSkeleton";
 import { GuidedChatMessages } from "@/components/create/GuidedChatMessages";
 import { CreateFlowProvider, useCreateFlow } from "@/contexts/CreateFlowContext";
@@ -14,12 +15,15 @@ import { usePostActions } from "@/hooks/usePostActions";
 import { useChatSessionContext } from "@/contexts/ChatSessionContext";
 import { hasApprovedPost } from "@/lib/sessions/approved-post";
 import type { StudioFlowStage } from "@/lib/create-flow/stages";
-import { stageChipsToSuggestions } from "@/lib/create-flow/stage-chips";
+import {
+  getEnabledPostChips,
+  stageChipsToSuggestions,
+} from "@/lib/create-flow/stage-chips";
 import { CopilotKit } from "@copilotkit/react-core";
 import { CopilotChat } from "@copilotkit/react-ui";
 import Image from "next/image";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 const STAGE_CHAT_LABELS: Record<
   StudioFlowStage,
@@ -27,7 +31,7 @@ const STAGE_CHAT_LABELS: Record<
 > = {
   post: {
     initial:
-      "Use the form below to generate your post. I can help you refine the draft, explain feedback, or retry with lessons.",
+      "Use the form below to generate your post. I can help you refine the draft, explain judge feedback, regenerate, or retry with judge feedback.",
     placeholder: "Ask me to help refine your draft…",
   },
   preview: {
@@ -42,12 +46,20 @@ function CreatePostChatInner({
 }: {
   onChatStarted: () => void | Promise<void>;
 }) {
-  const { stage } = useCreateFlow();
+  const { stage, lastAttempt } = useCreateFlow();
   const postActions = usePostActions();
   useGenerativeUI();
 
   const labels = STAGE_CHAT_LABELS[stage];
-  const suggestions = stageChipsToSuggestions(stage);
+  const suggestions = useMemo(() => {
+    if (stage === "post") {
+      return getEnabledPostChips(lastAttempt).map((chip) => ({
+        title: chip.label,
+        message: chip.message,
+      }));
+    }
+    return stageChipsToSuggestions(stage);
+  }, [stage, lastAttempt]);
   const Input = stage === "preview" ? ChipsOnlyInput : undefined;
 
   return (
@@ -59,6 +71,7 @@ function CreatePostChatInner({
           Messages={GuidedChatMessages}
           RenderMessage={BrandMateRenderMessage}
           Input={Input}
+          RenderSuggestionsList={StageSuggestionsList}
           suggestions={suggestions}
           onSubmitMessage={() => void onChatStarted()}
           instructions={labels.initial}

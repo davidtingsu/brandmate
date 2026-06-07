@@ -1,4 +1,5 @@
 import type { StudioFlowStage } from "@/lib/create-flow/stages";
+import type { PostAttempt } from "@/lib/types";
 
 export interface StageChip {
   id: string;
@@ -9,25 +10,21 @@ export interface StageChip {
 export const STAGE_CHIPS: Record<StudioFlowStage, StageChip[]> = {
   post: [
     {
+      id: "retry-judge",
+      label: "Retry with Judge feedback",
+      message:
+        "Retry using the judge breakdown and problems on my latest draft. Call retryWithJudgeFeedback with the same topic. If I added extra instructions in chat, pass them as userFeedback.",
+    },
+    {
+      id: "regenerate",
+      label: "Regenerate post",
+      message:
+        "Regenerate my post with the same format and post type as the latest draft. Call regeneratePost. If I added extra instructions in chat, pass them as userFeedback.",
+    },
+    {
       id: "score",
       label: "Explain judge score",
       message: "Explain the judge score on my latest draft.",
-    },
-    {
-      id: "retry",
-      label: "Retry with lessons",
-      message: "Retry my post using lessons from past feedback.",
-    },
-    {
-      id: "generic",
-      label: "Make it less generic",
-      message: "Make my draft less generic and more specific to my brand.",
-    },
-    {
-      id: "diagram",
-      label: "System diagram",
-      message:
-        "I want a post with a system diagram. Use dispatchDiagramAgent to build the ByteByteGo-style infographic for my topic, then help me refine the LinkedIn copy.",
     },
   ],
   preview: [
@@ -65,4 +62,34 @@ export function stageChipsToSuggestions(
     title: chip.label,
     message: chip.message,
   }));
+}
+
+export function hasGeneratedPost(attempt: PostAttempt | null): boolean {
+  return Boolean(attempt?.variants?.length);
+}
+
+export function hasJudgeFeedback(attempt: PostAttempt | null): boolean {
+  if (!attempt) return false;
+  return (
+    attempt.judgeScore > 0 ||
+    attempt.problems.length > 0 ||
+    Boolean(attempt.judgeFeedback?.trim())
+  );
+}
+
+export function isPostChipEnabled(
+  chipId: string,
+  attempt: PostAttempt | null
+): boolean {
+  if (chipId === "regenerate") return hasGeneratedPost(attempt);
+  if (chipId === "retry-judge" || chipId === "score") {
+    return hasJudgeFeedback(attempt);
+  }
+  return true;
+}
+
+export function getEnabledPostChips(attempt: PostAttempt | null): StageChip[] {
+  return STAGE_CHIPS.post.filter((chip) =>
+    isPostChipEnabled(chip.id, attempt)
+  );
 }

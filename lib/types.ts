@@ -94,6 +94,7 @@ export interface PostAttempt {
   judgeScore: number;
   problems: string[];
   breakdown: JudgeBreakdown;
+  judgeFeedback?: string;
   learnedLesson?: string;
   retrievedMemories: Lesson[];
   weaveTraceId?: string;
@@ -112,6 +113,8 @@ export interface GenerateInput {
   postType?: PostType;
   format?: PostFormat;
   scoreBefore?: number;
+  userFeedback?: string;
+  judgeRevisionContext?: string;
 }
 
 export interface GenerateOutput {
@@ -130,6 +133,8 @@ export interface CarouselGenerateInput {
   slideCount?: number;
   scoreBefore?: number;
   portraitImageUrl?: string;
+  userFeedback?: string;
+  judgeRevisionContext?: string;
 }
 
 export interface CarouselGenerateOutput {
@@ -179,6 +184,8 @@ export interface OrchestrateInput {
   scoreBefore?: number;
   niche?: string;
   branding?: PostBrandingOptions;
+  userFeedback?: string;
+  judgeRevisionContext?: string;
 }
 
 export interface CarouselRenderInput {

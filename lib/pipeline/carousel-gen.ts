@@ -7,6 +7,7 @@ import {
 } from "@/lib/config";
 import { buildCarouselSlides, buildLinkedInPost } from "@/lib/linkedin-format";
 import { parseModelJson } from "@/lib/parse-model-json";
+import { buildRevisionPromptBlocks } from "@/lib/pipeline/revision-prompt";
 import type { CarouselGenerateInput, CarouselGenerateOutput } from "@/lib/types";
 import { CAROUSEL_MODEL, getOpenAI } from "@/lib/weave/openai";
 
@@ -25,10 +26,11 @@ export async function generateCarouselCore(
       ? input.lessons.map((l, i) => `${i + 1}. ${l.lesson}`).join("\n")
       : "No prior lessons.";
 
-  const scoreContext =
-    input.scoreBefore !== undefined
-      ? `Previous attempt scored ${input.scoreBefore}/10. Improve specifically on prior weaknesses.`
-      : "";
+  const revisionContext = buildRevisionPromptBlocks({
+    userFeedback: input.userFeedback,
+    judgeRevisionContext: input.judgeRevisionContext,
+    scoreBefore: input.scoreBefore,
+  });
 
   const portraitContext = input.portraitImageUrl
     ? "A portrait photo is provided. Choose per-slide layout dynamically. Slide images use gpt-image-2 compositing (reference + portrait, high input fidelity) to preserve the author's likeness — copy should assume the author's real photo appears on portrait slides."
@@ -79,9 +81,7 @@ Brand: ${input.brandProfile.name} | Niche: ${input.brandProfile.niche}
 Audience: ${input.brandProfile.audience}
 Voice: ${input.brandProfile.voice}
 Attempt: ${input.attemptNumber}
-${scoreContext}
-
-Learned lessons:
+${revisionContext ? `${revisionContext}\n\n` : ""}Learned lessons:
 ${lessonsText}`,
       },
     ],

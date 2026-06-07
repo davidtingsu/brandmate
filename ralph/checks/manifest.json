@@ -59,6 +59,8 @@
     "REQ-CHIPS-003": ["stage-chips.sh"],
     "REQ-CHIPS-004": ["stage-chips.sh"],
     "REQ-CHIPS-005": ["stage-chips.sh"],
+    "REQ-CHIPS-006": ["stage-chips.sh"],
+    "REQ-CHIPS-007": ["stage-chips.sh"],
     "REQ-CAROUSEL-IMG-001": ["image-carousel.sh"],
     "REQ-CAROUSEL-IMG-002": ["image-carousel.sh"],
     "REQ-CAROUSEL-IMG-003": ["image-carousel.sh"],

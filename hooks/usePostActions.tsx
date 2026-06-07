@@ -41,6 +41,31 @@ export interface GeneratePostParams {
   includeHandle?: boolean;
   includeProfileImage?: boolean;
   branding?: PostBrandingOptions;
+  userFeedback?: string;
+  judgeRevisionContext?: string;
+  scoreBefore?: number;
+}
+
+function formatJudgeRevisionContext(attempt: PostAttempt): string {
+  const lines: string[] = [`Prior judge score: ${attempt.judgeScore}/10`];
+
+  if (attempt.scoreBefore !== undefined) {
+    lines.push(`Score before retry: ${attempt.scoreBefore}/10`);
+  }
+  if (attempt.problems.length > 0) {
+    lines.push(
+      `Problems:\n${attempt.problems.map((problem) => `- ${problem}`).join("\n")}`
+    );
+  }
+  const breakdown = attempt.breakdown;
+  lines.push(
+    `Breakdown: hook_strength=${breakdown.hook_strength}, voice_authenticity=${breakdown.voice_authenticity}, audience_fit=${breakdown.audience_fit}, engagement_potential=${breakdown.engagement_potential}, brand_alignment=${breakdown.brand_alignment}`
+  );
+  if (attempt.judgeFeedback) {
+    lines.push(`Judge feedback: ${attempt.judgeFeedback}`);
+  }
+
+  return lines.join("\n");
 }
 
 export interface RenderAttemptCardsOptions {
@@ -71,6 +96,7 @@ export function usePostActions() {
   const attemptCounterRef = useRef(1);
   const lastFormatRef = useRef<PostFormat>("text");
   const lastPortraitImageUrlRef = useRef<string | undefined>(undefined);
+  const lastGenerateParamsRef = useRef<GeneratePostParams | null>(null);
 
   useDiagramAgent({
     getActiveFormat: () => lastFormatRef.current,
@@ -100,6 +126,10 @@ export function usePostActions() {
           topic: lastAttemptRef.current.topic,
           score: lastAttemptRef.current.judgeScore,
           format: lastAttemptRef.current.variants[0]?.format,
+          postType: lastAttemptRef.current.variants[0]?.postType,
+          problems: lastAttemptRef.current.problems,
+          breakdown: lastAttemptRef.current.breakdown,
+          judgeFeedback: lastAttemptRef.current.judgeFeedback,
         }
       : null,
   });
@@ -274,9 +304,11 @@ export function usePostActions() {
           imageUrl: params.imageUrl,
           portraitImageUrl,
           branding,
-          scoreBefore: params.isRetry
-            ? lastAttemptRef.current?.judgeScore
-            : undefined,
+          scoreBefore:
+            params.scoreBefore ??
+            (params.isRetry ? lastAttemptRef.current?.judgeScore : undefined),
+          userFeedback: params.userFeedback,
+          judgeRevisionContext: params.judgeRevisionContext,
         }),
       });
       if (!res.ok) {
@@ -393,6 +425,20 @@ export function usePostActions() {
           )
         );
       }
+
+      lastGenerateParamsRef.current = {
+        topic: params.topic,
+        format: postFormat,
+        includeImage: params.includeImage,
+        imageStyle: params.imageStyle,
+        slideCount: params.slideCount,
+        postType: params.postType ?? attempt.variants[0]?.postType ?? "story",
+        imageUrl: params.imageUrl,
+        portraitImageUrl,
+        branding,
+        includeHandle: branding?.includeHandle,
+        includeProfileImage: branding?.includeProfileImage,
+      };
 
       return { ...data, attempt, weaveTraceId: data.weaveTraceId as string };
     },
@@ -703,68 +749,91 @@ export function usePostActions() {
   });
 
   useCopilotAction({
-    name: "retryWithLesson",
-    description: "Retry post generation using lessons stored in Redis",
+    name: "retryWithJudgeFeedback",
+    description:
+      "Retry post generation using judge breakdown, problems, and feedback on the latest draft",
     parameters: [
       { name: "topic", type: "string", description: "Post topic to retry", required: true },
       {
-        name: "format",
+        name: "userFeedback",
         type: "string",
-        description: "text | diagram | carousel",
-        required: false,
-      },
-      {
-        name: "includeImage",
-        type: "boolean",
-        description: "Include image on text retry",
-        required: false,
-      },
-      {
-        name: "slideCount",
-        type: "number",
-        description: "Carousel slide count",
-        required: false,
-      },
-      {
-        name: "postType",
-        type: "string",
-        description: "story | insight | lesson | milestone | hot_take",
-        required: false,
-      },
-      {
-        name: "includeHandle",
-        type: "boolean",
-        description: "Overlay handle",
-        required: false,
-      },
-      {
-        name: "includeProfileImage",
-        type: "boolean",
-        description: "Overlay profile photo",
+        description: "Optional extra revision instructions from the user chat",
         required: false,
       },
     ],
-    handler: async (params) => {
+    handler: async ({ topic, userFeedback }) => {
+      const attempt = lastAttemptRef.current;
+      if (!attempt) throw new Error("No post attempt to retry");
+
+      const lastParams = lastGenerateParamsRef.current;
       return runOrchestrate({
-        topic: params.topic,
+        topic,
         format:
-          (params.format as PostFormat) ??
-          lastAttemptRef.current?.variants[0]?.format ??
+          lastParams?.format ??
+          attempt.variants[0]?.format ??
           "text",
-        includeImage: params.includeImage,
-        slideCount: params.slideCount,
-        postType: (params.postType as PostType) ?? "story",
-        includeHandle: params.includeHandle,
-        includeProfileImage: params.includeProfileImage,
+        includeImage: lastParams?.includeImage,
+        imageStyle: lastParams?.imageStyle,
+        slideCount: lastParams?.slideCount,
+        postType:
+          lastParams?.postType ?? attempt.variants[0]?.postType ?? "story",
+        imageUrl: lastParams?.imageUrl,
+        portraitImageUrl: lastParams?.portraitImageUrl,
+        branding: lastParams?.branding,
+        includeHandle: lastParams?.includeHandle,
+        includeProfileImage: lastParams?.includeProfileImage,
         isRetry: true,
+        scoreBefore: attempt.judgeScore,
+        judgeRevisionContext: formatJudgeRevisionContext(attempt),
+        userFeedback,
       });
     },
     render: ({ status, result }) => {
       if (status === "inProgress") {
         return (
           <div className="text-sm text-slate-500">
-            Retrying with learned lessons from Redis...
+            Retrying with judge feedback...
           </div>
+        );
+      }
+      if (status !== "complete" || !result?.attempt) return <></>;
+      const attempt = result.attempt as PostAttempt;
+      return renderAttemptCards(
+        attempt,
+        result.weaveTraceId as string | undefined,
+        { showFeedback: true, showPreviewCta: false }
+      );
+    },
+  });
+
+  useCopilotAction({
+    name: "regeneratePost",
+    description:
+      "Regenerate the post with the same format and post type as the latest draft",
+    parameters: [
+      {
+        name: "userFeedback",
+        type: "string",
+        description: "Optional revision instructions from the user chat",
+        required: false,
+      },
+    ],
+    handler: async ({ userFeedback }) => {
+      const lastParams = lastGenerateParamsRef.current;
+      if (!lastParams) {
+        throw new Error("No prior generation to regenerate — generate a post first");
+      }
+
+      return runOrchestrate({
+        ...lastParams,
+        isRetry: true,
+        userFeedback,
+      });
+    },
+    render: ({ status, result }) => {
+      if (status === "inProgress") {
+        return (
+          <div className="text-sm text-slate-500">Regenerating post...</div>
         );
       }
       if (status !== "complete" || !result?.attempt) return <></>;
