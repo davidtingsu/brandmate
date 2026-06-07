@@ -64,6 +64,11 @@ Per-slide layout (pick dynamically per slide):
 - template_content: aesthetic template without portrait (middle educational slides)
 - split_before_after: before/after comparison panels
 
+Visual templates (7 slides map to these layouts):
+- Slide 1: portrait hook cover
+- Slides 2–6: educational content (roadmap steps, numbered lists, 2x2 grids, diagrams, weekly systems)
+- Last slide: portrait CTA with follow/handle and engagement prompt
+
 ${portraitContext}
 Slide 1 is the cover (bold title). Last slide has a CTA. Post type: ${postType}. Apply learned lessons.`,
       },

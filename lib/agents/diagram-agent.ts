@@ -9,27 +9,7 @@ import { CAROUSEL_MODEL, getOpenAI } from "@/lib/weave/openai";
 
 const DIAGRAM_JSON_SCHEMA = `{
   "title": string,
-  "subtitle": string (optional),
-  "summary": string (one sentence overview),
-  "phases": [
-    {
-      "id": string (slug),
-      "label": string (phase title, e.g. "Phase 1: Resolve Domain Name"),
-      "color": "purple" | "green" | "brown" | "blue" | "yellow" | "slate",
-      "steps": [
-        {
-          "number": number (optional),
-          "title": string,
-          "description": string (optional),
-          "items": string[] (optional bullet list),
-          "highlight": string (optional key result),
-          "code": string (optional monospace block)
-        }
-      ],
-      "nodes": [{ "id": string, "label": string, "icon": "browser"|"client"|"server"|"dns"|"database"|"cache" }] (optional)
-    }
-  ],
-  "flows": [{ "from": string, "to": string, "label": string (optional), "style": "solid"|"dashed" }] (optional)
+  "description": string (plain-text architecture explanation for an infographic)
 }`;
 
 export async function generateSystemDiagram(
@@ -48,13 +28,11 @@ export async function generateSystemDiagram(
         content: `${DIAGRAM_EXPLAINER_SYSTEM_PROMPT}
 
 Return JSON matching this schema:
-${DIAGRAM_JSON_SCHEMA}
-
-Style reference: ByteByteGo infographics — color-coded horizontal phases, numbered green step badges, dashed lines for background processes, solid arrows for main flow, code blocks for headers/handshakes.`,
+${DIAGRAM_JSON_SCHEMA}`,
       },
       {
         role: "user",
-        content: `Create a system diagram explaining: ${input.concept}${
+        content: `Create a system diagram description for: ${input.concept}${
           input.context ? `\n\nAdditional context: ${input.context}` : ""
         }`,
       },
@@ -73,27 +51,20 @@ Style reference: ByteByteGo infographics — color-coded horizontal phases, numb
     content
   );
 
+  const candidate = raw.diagram ?? raw;
   const diagram: SystemDiagram =
-    raw.diagram ??
-    (raw.title && raw.phases ? (raw as SystemDiagram) : null) ??
-    ({
-      title: input.concept,
-      summary: "Diagram generation returned incomplete data.",
-      phases: [
-        {
-          id: "fallback",
-          label: "Overview",
-          color: "slate",
-          steps: [
-            {
-              number: 1,
-              title: input.concept,
-              description: "Retry with a more specific concept.",
-            },
-          ],
-        },
-      ],
-    } satisfies SystemDiagram);
+    candidate.title && candidate.description
+      ? {
+          title: candidate.title,
+          description: candidate.description,
+        }
+      : {
+          title: input.concept,
+          description:
+            typeof candidate.description === "string"
+              ? candidate.description
+              : "Retry with a more specific concept.",
+        };
 
   return {
     diagram,

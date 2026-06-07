@@ -10,6 +10,8 @@ test -f public/examples/carousel-portrait-example.jpg
 test -f lib/pipeline/carousel-render.ts
 test -f app/api/agents/carousel/render/route.ts
 test -f lib/carousel/render-slide.ts
+test -f lib/pipeline/carousel-slide-image-gen.ts
+search_q "generateCarouselSlideImage" lib/carousel/render-slide.ts
 search_q '"layout"' lib/pipeline/carousel-gen.ts
 search_q "CarouselRenderProgress" components/create/
 search_q "imageUrl" components/linkedin/LinkedInSlideCard.tsx

@@ -11,8 +11,10 @@
         "copilotkit-route.sh",
         "config-budget.sh",
         "image-carousel.sh",
+        "carousel-reference-images.sh",
         "e2e-harness.sh",
-        "onboarding-gate.sh"
+        "onboarding-gate.sh",
+        "diagram-image.sh"
       ],
       "e2e": true
     },
@@ -29,7 +31,10 @@
       "static": ["guided-flow.sh"]
     },
     "carousel": {
-      "static": ["image-carousel.sh"]
+      "static": ["image-carousel.sh", "carousel-reference-images.sh"]
+    },
+    "diagram": {
+      "static": ["diagram-image.sh"]
     },
     "e2e": {
       "e2e": true
@@ -58,11 +63,20 @@
     "REQ-CAROUSEL-IMG-007": ["image-carousel.sh"],
     "REQ-CAROUSEL-IMG-008": ["image-carousel.sh"],
     "REQ-CAROUSEL-IMG-009": ["image-carousel.sh"],
+    "REQ-CAROUSEL-REF-001": ["carousel-reference-images.sh"],
+    "REQ-CAROUSEL-REF-002": ["carousel-reference-images.sh"],
+    "REQ-CAROUSEL-REF-003": ["carousel-reference-images.sh"],
+    "REQ-CAROUSEL-REF-004": ["carousel-reference-images.sh"],
+    "REQ-CAROUSEL-REF-005": ["carousel-reference-images.sh"],
+    "REQ-CAROUSEL-REF-006": ["carousel-reference-images.sh"],
     "REQ-E2E-001": ["e2e.sh", "e2e-harness.sh"],
     "REQ-MANUAL-001": ["check-manual.sh"],
     "REQ-ONBOARD-001": ["onboarding-gate.sh"],
     "REQ-ONBOARD-002": ["onboarding-gate.sh"],
     "REQ-ONBOARD-003": ["onboarding-gate.sh", "guided-flow.sh"],
-    "REQ-ONBOARD-004": ["onboarding-gate.sh"]
+    "REQ-ONBOARD-004": ["onboarding-gate.sh"],
+    "REQ-DIAGRAM-IMG-001": ["diagram-image.sh"],
+    "REQ-DIAGRAM-IMG-002": ["diagram-image.sh"],
+    "REQ-DIAGRAM-IMG-003": ["diagram-image.sh"]
   }
 }

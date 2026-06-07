@@ -221,58 +221,9 @@ export interface ChatMessage {
   created_at: string;
 }
 
-export type DiagramPhaseColor =
-  | "purple"
-  | "green"
-  | "brown"
-  | "blue"
-  | "yellow"
-  | "slate";
-
-export type DiagramNodeIcon =
-  | "browser"
-  | "client"
-  | "server"
-  | "dns"
-  | "database"
-  | "cache";
-
-export interface DiagramStep {
-  number?: number;
-  title: string;
-  description?: string;
-  items?: string[];
-  highlight?: string;
-  code?: string;
-}
-
-export interface DiagramNode {
-  id: string;
-  label: string;
-  icon?: DiagramNodeIcon;
-}
-
-export interface DiagramFlow {
-  from: string;
-  to: string;
-  label?: string;
-  style?: "solid" | "dashed";
-}
-
-export interface DiagramPhase {
-  id: string;
-  label: string;
-  color: DiagramPhaseColor;
-  steps: DiagramStep[];
-  nodes?: DiagramNode[];
-}
-
 export interface SystemDiagram {
   title: string;
-  subtitle?: string;
-  phases: DiagramPhase[];
-  flows?: DiagramFlow[];
-  summary?: string;
+  description: string;
 }
 
 export interface DiagramAgentInput {

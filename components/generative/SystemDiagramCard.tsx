@@ -33,9 +33,6 @@ export function SystemDiagramCard({
         <h3 className="mt-0.5 text-base font-bold text-slate-900">
           {diagram.title}
         </h3>
-        {diagram.subtitle && (
-          <p className="mt-1 text-xs text-slate-600">{diagram.subtitle}</p>
-        )}
       </div>
 
       <div className="bg-slate-100 p-2">
