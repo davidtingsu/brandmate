@@ -21,7 +21,10 @@ interface ChatSessionContextValue {
   setCopilotThreadId: (id: string) => void;
   setSessionsEnabled: (v: boolean) => void;
   setLoading: (v: boolean) => void;
-  persistAttempt: (payload: Record<string, unknown>) => Promise<void>;
+  persistAttempt: (
+    payload: Record<string, unknown>,
+    sessionId?: string
+  ) => Promise<void>;
 }
 
 const ChatSessionContext = createContext<ChatSessionContextValue | null>(null);
@@ -38,9 +41,10 @@ export function ChatSessionProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   const persistAttempt = useCallback(
-    async (payload: Record<string, unknown>) => {
-      if (!activeSessionId || !sessionsEnabled) return;
-      await fetch(`/api/sessions/${activeSessionId}/messages`, {
+    async (payload: Record<string, unknown>, sessionIdOverride?: string) => {
+      const sessionId = sessionIdOverride ?? activeSessionId;
+      if (!sessionId || !sessionsEnabled) return;
+      await fetch(`/api/sessions/${sessionId}/messages`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

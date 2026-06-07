@@ -10,6 +10,7 @@ import { MemoryListCard } from "@/components/generative/MemoryListCard";
 import { PostCard } from "@/components/generative/PostCard";
 import { useBrandProfile } from "@/contexts/BrandProfileContext";
 import { useChatSessionContext } from "@/contexts/ChatSessionContext";
+import { useSessionLoader } from "@/hooks/useSessionLoader";
 import type {
   BrandProfile,
   HumanFeedbackType,
@@ -25,8 +26,8 @@ import { useCallback, useRef } from "react";
 export function usePostActions() {
   const router = useRouter();
   const { brandProfile, setBrandProfile } = useBrandProfile();
-  const { persistAttempt, activeSessionId, sessionsEnabled } =
-    useChatSessionContext();
+  const { persistAttempt, sessionsEnabled } = useChatSessionContext();
+  const { ensureSession } = useSessionLoader();
 
   const lastAttemptRef = useRef<PostAttempt | null>(null);
   const lastBrandingRef = useRef<PostBrandingOptions | undefined>(undefined);
@@ -66,8 +67,9 @@ export function usePostActions() {
 
   const persistProfile = useCallback(
     async (profile: BrandProfile) => {
-      if (!activeSessionId || !sessionsEnabled) return;
-      await fetch(`/api/sessions/${activeSessionId}/messages`, {
+      const sessionId = await ensureSession();
+      if (!sessionId || !sessionsEnabled) return;
+      await fetch(`/api/sessions/${sessionId}/messages`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -77,13 +79,14 @@ export function usePostActions() {
         }),
       });
     },
-    [activeSessionId, sessionsEnabled]
+    [ensureSession, sessionsEnabled]
   );
 
   const persistApprovedPost = useCallback(
     async (attempt: PostAttempt, variantIndex = 0) => {
-      if (!activeSessionId || !sessionsEnabled) return;
-      await fetch(`/api/sessions/${activeSessionId}/messages`, {
+      const sessionId = await ensureSession();
+      if (!sessionId || !sessionsEnabled) return;
+      await fetch(`/api/sessions/${sessionId}/messages`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -98,18 +101,19 @@ export function usePostActions() {
           },
         }),
       });
+      return sessionId;
     },
-    [activeSessionId, sessionsEnabled]
+    [ensureSession, sessionsEnabled]
   );
 
   const handlePreviewInFeed = useCallback(async () => {
     const attempt = lastAttemptRef.current;
     if (!attempt) return;
-    await persistApprovedPost(attempt);
-    if (activeSessionId) {
-      router.push(`/preview/${activeSessionId}`);
+    const sessionId = await persistApprovedPost(attempt);
+    if (sessionId) {
+      router.push(`/preview/${sessionId}`);
     }
-  }, [activeSessionId, persistApprovedPost, router]);
+  }, [persistApprovedPost, router]);
 
   const renderAttemptCards = (
     attempt: PostAttempt,
@@ -300,10 +304,14 @@ export function usePostActions() {
         branding: branding ?? (data.attempt as PostAttempt).branding,
       };
       lastAttemptRef.current = attempt;
-      await persistAttempt({
-        attempt,
-        weaveTraceId: data.weaveTraceId,
-      });
+      const sessionId = await ensureSession();
+      await persistAttempt(
+        {
+          attempt,
+          weaveTraceId: data.weaveTraceId,
+        },
+        sessionId ?? undefined
+      );
       return { ...data, attempt };
     },
     render: ({ status, result }) => {
@@ -341,8 +349,8 @@ export function usePostActions() {
     handler: async ({ variantIndex }) => {
       const attempt = lastAttemptRef.current;
       if (!attempt) throw new Error("No post to approve");
-      await persistApprovedPost(attempt, variantIndex ?? 0);
-      return { sessionId: activeSessionId, approved: true };
+      const sessionId = await persistApprovedPost(attempt, variantIndex ?? 0);
+      return { sessionId, approved: true };
     },
     render: ({ status }) => {
       if (status === "inProgress") {
@@ -561,10 +569,14 @@ export function usePostActions() {
         branding: branding ?? (data.attempt as PostAttempt).branding,
       };
       lastAttemptRef.current = attempt;
-      await persistAttempt({
-        attempt,
-        weaveTraceId: data.weaveTraceId,
-      });
+      const sessionId = await ensureSession();
+      await persistAttempt(
+        {
+          attempt,
+          weaveTraceId: data.weaveTraceId,
+        },
+        sessionId ?? undefined
+      );
       return { ...data, attempt };
     },
     render: ({ status, result }) => {

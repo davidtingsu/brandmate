@@ -5,6 +5,7 @@ import { GeneratePostForm } from "@/components/forms/GeneratePostForm";
 import { FormatPickerCard } from "@/components/generative/FormatPickerCard";
 import { useBrandProfile } from "@/contexts/BrandProfileContext";
 import { useChatSessionContext } from "@/contexts/ChatSessionContext";
+import { useSessionLoader } from "@/hooks/useSessionLoader";
 import { BRANDMATE_COACH_DIAGRAM_DISPATCH } from "@/lib/agents/diagram-explainer-agent";
 import type { BrandProfile } from "@/lib/types";
 import {
@@ -15,12 +16,14 @@ import { useCallback } from "react";
 
 export function useGenerativeUI() {
   const { brandProfile, setBrandProfile } = useBrandProfile();
-  const { activeSessionId, sessionsEnabled } = useChatSessionContext();
+  const { sessionsEnabled } = useChatSessionContext();
+  const { ensureSession } = useSessionLoader();
 
   const persistProfile = useCallback(
     async (profile: BrandProfile) => {
-      if (!activeSessionId || !sessionsEnabled) return;
-      await fetch(`/api/sessions/${activeSessionId}/messages`, {
+      const sessionId = await ensureSession();
+      if (!sessionId || !sessionsEnabled) return;
+      await fetch(`/api/sessions/${sessionId}/messages`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -30,7 +33,7 @@ export function useGenerativeUI() {
         }),
       });
     },
-    [activeSessionId, sessionsEnabled]
+    [ensureSession, sessionsEnabled]
   );
 
   useCopilotAdditionalInstructions({

@@ -4,10 +4,12 @@ import { useChatSessionContext } from "@/contexts/ChatSessionContext";
 import { useBrandProfile } from "@/contexts/BrandProfileContext";
 import { findBrandProfile } from "@/lib/sessions/approved-post";
 import type { ChatMessage, ChatThread } from "@/lib/types";
-import { useCallback } from "react";
+import { useCallback, useRef } from "react";
 
 export function useSessionLoader() {
   const {
+    activeSessionId,
+    copilotThreadId,
     sessionsEnabled,
     loading,
     setThreads,
@@ -17,6 +19,8 @@ export function useSessionLoader() {
     setLoading,
   } = useChatSessionContext();
   const { setBrandProfile } = useBrandProfile();
+  const ensureSessionPromiseRef = useRef<Promise<string | null> | null>(null);
+  const ensuredSessionIdRef = useRef<string | null>(null);
 
   const loadSessions = useCallback(async () => {
     setLoading(true);
@@ -30,26 +34,53 @@ export function useSessionLoader() {
     }
   }, [setLoading, setSessionsEnabled, setThreads]);
 
+  const postSession = useCallback(
+    async (threadId: string): Promise<string | null> => {
+      if (!sessionsEnabled) return null;
+
+      const res = await fetch("/api/sessions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: "Untitled post",
+          copilotThreadId: threadId,
+        }),
+      });
+      if (!res.ok) return null;
+      const { thread } = (await res.json()) as { thread: ChatThread };
+      setActiveSessionId(thread.id);
+      ensuredSessionIdRef.current = thread.id;
+      await loadSessions();
+      return thread.id;
+    },
+    [loadSessions, sessionsEnabled, setActiveSessionId]
+  );
+
+  const ensureSession = useCallback(async (): Promise<string | null> => {
+    if (activeSessionId) return activeSessionId;
+    if (ensuredSessionIdRef.current) return ensuredSessionIdRef.current;
+    if (!sessionsEnabled) return null;
+
+    if (ensureSessionPromiseRef.current) {
+      return ensureSessionPromiseRef.current;
+    }
+
+    const promise = postSession(copilotThreadId);
+    ensureSessionPromiseRef.current = promise;
+    try {
+      const sessionId = await promise;
+      if (sessionId) ensuredSessionIdRef.current = sessionId;
+      return sessionId;
+    } finally {
+      ensureSessionPromiseRef.current = null;
+    }
+  }, [activeSessionId, copilotThreadId, postSession, sessionsEnabled]);
+
   const createSession = useCallback(async (): Promise<string | null> => {
     const newCopilotId = crypto.randomUUID();
     setCopilotThreadId(newCopilotId);
-
-    if (!sessionsEnabled) return null;
-
-    const res = await fetch("/api/sessions", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        title: "Untitled post",
-        copilotThreadId: newCopilotId,
-      }),
-    });
-    if (!res.ok) return null;
-    const { thread } = (await res.json()) as { thread: ChatThread };
-    setActiveSessionId(thread.id);
-    await loadSessions();
-    return thread.id;
-  }, [loadSessions, sessionsEnabled, setActiveSessionId, setCopilotThreadId]);
+    return postSession(newCopilotId);
+  }, [postSession, setCopilotThreadId]);
 
   const loadSession = useCallback(
     async (sessionId: string): Promise<ChatMessage[]> => {
@@ -66,9 +97,11 @@ export function useSessionLoader() {
         );
         if (thread) {
           setActiveSessionId(thread.id);
+          ensuredSessionIdRef.current = thread.id;
           setCopilotThreadId(thread.copilot_thread_id ?? crypto.randomUUID());
         } else {
           setActiveSessionId(sessionId);
+          ensuredSessionIdRef.current = sessionId;
         }
       }
 
@@ -91,6 +124,7 @@ export function useSessionLoader() {
     sessionsEnabled,
     loadSessions,
     createSession,
+    ensureSession,
     loadSession,
   };
 }

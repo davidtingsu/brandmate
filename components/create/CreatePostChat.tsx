@@ -1,6 +1,7 @@
 "use client";
 
 import { BrandMateRenderMessage } from "@/components/chat/BrandMateRenderMessage";
+import { CreatePostSkeleton } from "@/components/create/CreatePostSkeleton";
 import { useSessionLoader } from "@/hooks/useSessionLoader";
 import { useDiagramAgent } from "@/hooks/useDiagramAgent";
 import { useGenerativeUI } from "@/hooks/useGenerativeUI";
@@ -10,9 +11,13 @@ import { CopilotKit } from "@copilotkit/react-core";
 import { CopilotChat } from "@copilotkit/react-ui";
 import Image from "next/image";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
-function CreatePostChatInner() {
+function CreatePostChatInner({
+  onChatStarted,
+}: {
+  onChatStarted: () => void | Promise<void>;
+}) {
   usePostActions();
   useGenerativeUI();
   useDiagramAgent();
@@ -22,6 +27,7 @@ function CreatePostChatInner() {
       <CopilotChat
         className="flex min-h-0 flex-1 flex-col"
         RenderMessage={BrandMateRenderMessage}
+        onSubmitMessage={() => void onChatStarted()}
         labels={{
           title: "BrandMate Coach",
           initial:
@@ -36,25 +42,28 @@ export function CreatePostChat() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const sessionParam = searchParams.get("session");
-  const { copilotThreadId } = useChatSessionContext();
-  const { loadSession, createSession, loadSessions } = useSessionLoader();
+  const { copilotThreadId, loading: sessionsLoading } = useChatSessionContext();
+  const { loadSession, ensureSession, loadSessions } = useSessionLoader();
   const [ready, setReady] = useState(false);
+
+  const handleChatStarted = useCallback(async () => {
+    const sessionId = await ensureSession();
+    if (sessionId && !sessionParam) {
+      router.replace(`/create?session=${sessionId}`, { scroll: false });
+    }
+  }, [ensureSession, router, sessionParam]);
 
   useEffect(() => {
     let cancelled = false;
 
     void (async () => {
       setReady(false);
-      await loadSessions();
+      if (sessionsLoading) {
+        await loadSessions();
+      }
 
       if (sessionParam) {
         await loadSession(sessionParam);
-      } else {
-        const sessionId = await createSession();
-        if (sessionId) {
-          router.replace(`/create?session=${sessionId}`);
-          return;
-        }
       }
 
       if (!cancelled) {
@@ -65,14 +74,10 @@ export function CreatePostChat() {
     return () => {
       cancelled = true;
     };
-  }, [sessionParam, loadSession, createSession, loadSessions, router]);
+  }, [sessionParam, loadSession, loadSessions, sessionsLoading]);
 
   if (!ready) {
-    return (
-      <main className="flex min-h-screen items-center justify-center text-sm text-slate-500">
-        Loading chat…
-      </main>
-    );
+    return <CreatePostSkeleton />;
   }
 
   return (
@@ -102,7 +107,7 @@ export function CreatePostChat() {
 
       <div className="mx-auto flex w-full max-w-3xl flex-1 flex-col px-2 pb-4">
         <CopilotKit runtimeUrl="/api/copilotkit" threadId={copilotThreadId}>
-          <CreatePostChatInner />
+          <CreatePostChatInner onChatStarted={handleChatStarted} />
         </CopilotKit>
       </div>
     </main>

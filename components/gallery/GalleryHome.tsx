@@ -10,17 +10,14 @@ import { useEffect } from "react";
 
 export function GalleryHome() {
   const router = useRouter();
-  const { loading, loadSessions, createSession, loadSession } = useSessionLoader();
+  const { loading, loadSessions, loadSession } = useSessionLoader();
 
   useEffect(() => {
     void loadSessions();
   }, [loadSessions]);
 
   const handleNewPost = () => {
-    void (async () => {
-      const sessionId = await createSession();
-      router.push(sessionId ? `/create?session=${sessionId}` : "/create");
-    })();
+    router.push("/create");
   };
 
   const handleSelectPost = (thread: ChatThread) => {
