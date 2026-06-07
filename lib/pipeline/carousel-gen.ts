@@ -1,4 +1,5 @@
 import {
+  chatCompletionTokenLimit,
   DEFAULT_SLIDE_COUNT,
   MAX_SLIDE_COUNT,
   MAX_TOKENS,
@@ -39,7 +40,7 @@ export async function generateCarouselCore(
 
   const response = await openai.chat.completions.create({
     model: CAROUSEL_MODEL,
-    max_tokens: MAX_TOKENS.carousel,
+    ...chatCompletionTokenLimit(CAROUSEL_MODEL, MAX_TOKENS.carousel),
     response_format: { type: "json_object" },
     messages: [
       {

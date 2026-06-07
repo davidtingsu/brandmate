@@ -12,16 +12,16 @@
 - REQ-CREATE-011 — BrandProfileCard above GeneratePostForm on Step 2
 - REQ-CHIPS-001 through REQ-CHIPS-005 — stage chips + chips-only input
 - REQ-CAROUSEL-IMG-001 through REQ-CAROUSEL-IMG-009 — image carousel PNG render, portrait input, progress UI, premium CAROUSEL_MODEL
+- REQ-E2E-001 through REQ-E2E-003 — Playwright E2E in verify pipeline (stubbed carousel APIs)
+- REQ-MANUAL-001 through REQ-MANUAL-004 — manual checklist + skip-manual + manual-verify.sh
 
 ## Backlog
 
-- Playwright E2E in ralph/checks/e2e/
 - Supabase profile image onError fallback
-- CI job running verify.sh only
+- CI job running `verify.sh --skip-manual` on pull requests
 
-## Manual verification (N/A for v1 loop)
+## Manual verification
 
-- Full E2E post generation (OpenAI + Redis) — N/A
-- Weave score improvement demo — N/A
-- Supabase profile image upload/display — N/A
-- End-to-end: submit profile → card → generate form → generate post — verified in implementation
+See [`manual-checklist.json`](manual-checklist.json). All items default to `n/a`. Set status to `pending` when human sign-off is required before `RALPH_COMPLETE`.
+
+Run `./ralph/scripts/manual-verify.sh` or `./ralph/scripts/verify.sh --skip-manual` for agent-only loops.

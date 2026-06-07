@@ -1,5 +1,9 @@
 import { embedText } from "@/lib/embeddings";
-import { MAX_LESSONS_IN_PROMPT, MAX_TOKENS } from "@/lib/config";
+import {
+  chatCompletionTokenLimit,
+  MAX_LESSONS_IN_PROMPT,
+  MAX_TOKENS,
+} from "@/lib/config";
 import { generateCarouselCore } from "@/lib/pipeline/carousel-gen";
 import { generatePostImageCore } from "@/lib/pipeline/image-gen";
 import { buildLinkedInPost } from "@/lib/linkedin-format";
@@ -132,7 +136,7 @@ export async function judgePostCore(input: JudgeInput): Promise<JudgeOutput> {
 
   const response = await openai.chat.completions.create({
     model: judgeModel,
-    max_tokens: MAX_TOKENS.judge,
+    ...chatCompletionTokenLimit(judgeModel, MAX_TOKENS.judge),
     response_format: { type: "json_object" },
     messages: [
       {

@@ -28,3 +28,8 @@ npm-debug.log*
 
 # ralph loop runtime
 ralph/.ralph-state/
+
+# playwright
+test-results/
+playwright-report/
+blob-report/

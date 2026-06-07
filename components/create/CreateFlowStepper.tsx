@@ -17,6 +17,7 @@ export function CreateFlowStepper() {
 
   return (
     <nav
+      data-testid="create-flow-stepper"
       aria-label="Create post steps"
       className="mb-4 flex items-center justify-center gap-2 border-b border-slate-100 pb-4 pt-2"
     >

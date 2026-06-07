@@ -86,6 +86,7 @@ export function GeneratePostForm({
 
   return (
     <form
+      data-testid="generate-post-form"
       onSubmit={(e) => void handleSubmit(e)}
       className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm"
     >

@@ -12,4 +12,5 @@ All harness files live under `ralph/` at repo root — not inside `app/`.
 
 1. Engineering gates (lint, build)
 2. Static product checks
-3. Manual E2E (documented, not blocking v1)
+3. Playwright E2E (stubbed APIs)
+4. Manual checklist (`manual-checklist.json`; skip with `--skip-manual`)

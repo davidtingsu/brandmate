@@ -22,7 +22,10 @@ export function CarouselRenderProgress({ state }: CarouselRenderProgressProps) {
         : `Rendering slide ${Math.min(state.currentSlide, state.totalSlides)} of ${state.totalSlides}…`;
 
   return (
-    <div className="mb-4 rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+    <div
+      data-testid="carousel-render-progress"
+      className="mb-4 rounded-xl border border-slate-200 bg-white p-4 shadow-sm"
+    >
       <div className="mb-2 flex items-center justify-between text-sm">
         <span className="font-medium text-slate-800">{statusLabel}</span>
         {state.phase === "rendering" && (

@@ -8,6 +8,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
+    "test:e2e": "playwright test -c ralph/checks/e2e/playwright.config.ts",
+    "test:e2e:ui": "playwright test -c ralph/checks/e2e/playwright.config.ts --ui",
     "env:push-vercel": "bash scripts/push-vercel-env.sh .env.vercel production",
     "env:push-vercel:preview": "bash scripts/push-vercel-env.sh .env.vercel preview",
     "git:commit": "bash scripts/git-commit.sh"
@@ -27,6 +29,7 @@
     "zod": "^3.24.0"
   },
   "devDependencies": {
+    "@playwright/test": "^1.60.0",
     "@types/node": "^22.10.0",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",

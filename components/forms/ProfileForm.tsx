@@ -117,7 +117,11 @@ export function ProfileForm({
         Set your brand profile so every draft matches your voice and audience.
       </p>
 
-      <form onSubmit={(e) => void handleSubmit(e)} className="space-y-3">
+      <form
+        data-testid="profile-form"
+        onSubmit={(e) => void handleSubmit(e)}
+        className="space-y-3"
+      >
         <div className="flex flex-wrap items-center gap-4">
           <div className="relative">
             {form.profileImageUrl ? (

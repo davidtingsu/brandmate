@@ -44,6 +44,7 @@ export function PostsGallery({ onNewPost, onSelectPost }: PostsGalleryProps) {
           </div>
           <button
             type="button"
+            data-testid="create-new-post"
             onClick={onNewPost}
             className="rounded-lg bg-linkedin px-5 py-2.5 text-sm font-semibold text-white hover:bg-blue-700"
           >
@@ -73,6 +74,7 @@ export function PostsGallery({ onNewPost, onSelectPost }: PostsGalleryProps) {
         </div>
         <button
           type="button"
+          data-testid="create-new-post"
           onClick={onNewPost}
           className="rounded-lg bg-linkedin px-5 py-2.5 text-sm font-semibold text-white hover:bg-blue-700"
         >
@@ -89,6 +91,7 @@ export function PostsGallery({ onNewPost, onSelectPost }: PostsGalleryProps) {
           </p>
           <button
             type="button"
+            data-testid="create-new-post"
             onClick={onNewPost}
             className="rounded-lg bg-linkedin px-5 py-2.5 text-sm font-semibold text-white hover:bg-blue-700"
           >

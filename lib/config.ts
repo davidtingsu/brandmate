@@ -19,6 +19,18 @@ export const MAX_TOKENS = {
   diagram: 1400,
 } as const;
 
+/** GPT-5+ and o-series models require max_completion_tokens instead of max_tokens. */
+export function chatCompletionTokenLimit(
+  model: string,
+  limit: number
+): { max_tokens: number } | { max_completion_tokens: number } {
+  const usesCompletionTokens =
+    /^gpt-5/i.test(model) || /^o[134]/i.test(model);
+  return usesCompletionTokens
+    ? { max_completion_tokens: limit }
+    : { max_tokens: limit };
+}
+
 /** Dedicated agent id for ByteByteGo-style system diagram explanations */
 export const DIAGRAM_EXPLAINER_AGENT_ID = "diagram_explainer";
 
