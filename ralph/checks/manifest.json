@@ -83,6 +83,7 @@
     "REQ-ONBOARD-004": ["onboarding-gate.sh"],
     "REQ-DIAGRAM-IMG-001": ["diagram-image.sh"],
     "REQ-DIAGRAM-IMG-002": ["diagram-image.sh"],
-    "REQ-DIAGRAM-IMG-003": ["diagram-image.sh"]
+    "REQ-DIAGRAM-IMG-003": ["diagram-image.sh"],
+    "REQ-DIAGRAM-IMG-004": ["diagram-image.sh"]
   }
 }

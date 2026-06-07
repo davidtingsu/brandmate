@@ -340,6 +340,7 @@ export function usePostActions() {
           body: JSON.stringify({
             concept: params.topic,
             context: `LinkedIn niche: ${profile.niche}. Audience: ${profile.audience}. Voice: ${profile.voice}.`,
+            brandName: profile.name,
           }),
         });
         if (!diagramRes.ok) {
